@@ -79,7 +79,7 @@ obj_t **frame_extend(obj_t **old_frame, size_t size,
     // Note that if we are extending the env, the slots will also be
     // cleared since otherwise we may end up marking garbage-collected
     // heap objects (which is extremely bad!)
-    if (1 || flags & FR_CLEAR_SLOTS || flags & FR_EXTEND_ENV) {
+    if (flags & FR_CLEAR_SLOTS || flags & FR_EXTEND_ENV) {
         for (i = 0; i < real_size; ++i) {
             new_frame[i] = NULL;
         }
@@ -144,6 +144,7 @@ tailcall:
         car = pair_car(self);
         cdr = pair_cdr(self);
         if (symbolp(car)) {
+            // Handling special forms
             if (car == symbol_if) {
                 obj_t *pred, *todo, *otherwise;
                 pred = pair_car(cdr);
@@ -253,6 +254,7 @@ tailcall:
             obj_t *orig_env = frame_env(frame);
             long argc;
             long i;
+            bool_t needs_eval = 1;
             {
                 // Get the procedure/closure
                 obj_t **proc_frame = frame_extend(frame, 1,
@@ -273,8 +275,10 @@ tailcall:
 // XXX: WARNING -- Frame is UNUSABLE DURING APPLICATION PREPARATION
 // XXX
             }
+
             // Two pass -- 1: get argc and fill the frame slots with
             // list items waiting for evaluation.
+apply_reentry:
             argc = 0;
             for (iter = cdr; pairp(iter); iter = pair_cdr(iter)) {
                 ++argc;
@@ -287,19 +291,21 @@ tailcall:
 
             // -- 2: move each item into evaluatin position and eval.
             // Note that we are evaluating in reversed order (right to left)
-            for (i = 0; i < argc; ++i) {
-                // Evaluate this argument on a new frame
-                obj_t **arg_frame = frame_extend(frame, 1, FR_CLEAR_SLOTS);
-                // Since the frame is unusable, we need to manually
-                // set its environment and prev-frame-ptr
-                frame_set_prev(arg_frame, orig_frame);
-                frame_set_env(arg_frame, orig_env);
+            if (needs_eval) {
+                for (i = 0; i < argc; ++i) {
+                    // Evaluate this argument on a new frame
+                    obj_t **arg_frame = frame_extend(frame, 1, FR_CLEAR_SLOTS);
+                    // Since the frame is unusable, we need to manually
+                    // set its environment and prev-frame-ptr
+                    frame_set_prev(arg_frame, orig_frame);
+                    frame_set_env(arg_frame, orig_env);
 
-                *frame_ref(arg_frame, 0) = frame[i];
-                retval = eval_frame(arg_frame);
+                    *frame_ref(arg_frame, 0) = frame[i];
+                    retval = eval_frame(arg_frame);
 
-                // Push the result back to the argument position.
-                frame[i] = retval;
+                    // Push the result back to the argument position.
+                    frame[i] = retval;
+                }
             }
 
             // Creating new frame and setting up environment.
@@ -311,6 +317,27 @@ tailcall:
                 if (procedurep(proc)) {
                     // Is c-procedure -- just evaluate it.
                     // Note that we will treat apply/eval differently.
+                    if (lib_is_eval_proc(proc)) {
+                        if (argc != 1) {
+                            fatal_error("eval should have 1 argument");
+                        }
+                        obj_t *expr = *frame_ref(frame, 0);
+                        frame = orig_frame;
+                        *frame_ref(frame, 0) = expr;
+                        goto tailcall;
+                    }
+                    else if (lib_is_apply_proc(proc)) {
+                        if (argc != 2) {
+                            fatal_error("apply should have 2 arguments");
+                        }
+                        proc = *frame_ref(frame, 1);
+                        cdr = *frame_ref(frame, 0);
+                        frame = orig_frame;
+                        --frame;
+                        *frame = proc;
+                        needs_eval = 0;
+                        goto apply_reentry;
+                    }
                     return apply_procedure(frame);
                 }
                 else {

@@ -15,7 +15,7 @@ static const size_t STACK_SIZE = 1024 * 8;
 static obj_t **stack = NULL;
 static obj_t **sp;
 
-#define MIN_HEAP_SIZE (1024 * 1024 * 4)
+#define MIN_HEAP_SIZE (1024 * 1024 * 1)
 static obj_t *gc_head = NULL;
 static size_t next_collect = MIN_HEAP_SIZE;
 static const double expand_factor = 1.5;
@@ -107,14 +107,14 @@ gc_collect(obj_t **frame_ptr)
 
     if (!gc_enabled) {
         // Debug
-        //fprintf(stderr, "; heap (%ld/%ld), gc supressed...\n",
-        //        heap_size, next_collect);
+        fprintf(stderr, "; heap (%ld/%ld), gc supressed...\n",
+                heap_size, next_collect);
         return 0;
     }
 
     // Debug
-    //fprintf(stderr, "; heap (%ld/%ld), gc collecting...\n",
-    //        heap_size, next_collect);
+    fprintf(stderr, "; heap (%ld/%ld), gc collecting...\n",
+            heap_size, next_collect);
 
     // Firstly mark the stack
     for (iter = frame_ptr; iter < stack + STACK_SIZE; ++iter) {
@@ -166,8 +166,8 @@ gc_collect(obj_t **frame_ptr)
     }
 
     // Debug
-    //fprintf(stderr, "; collection result => (%ld/%ld), %lu bytes freed\n",
-    //        heap_size, next_collect, bytes_freed);
+    fprintf(stderr, "; collection result => (%ld/%ld), %lu bytes freed\n",
+            heap_size, next_collect, bytes_freed);
 
     return bytes_freed;
 }

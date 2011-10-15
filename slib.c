@@ -18,9 +18,17 @@ static obj_t *lib_cons(obj_t **frame);
 static obj_t *lib_car(obj_t **frame);
 static obj_t *lib_cdr(obj_t **frame);
 
+static obj_t *lib_nullp(obj_t **frame);
+static obj_t *lib_pairp(obj_t **frame);
+static obj_t *lib_symbolp(obj_t **frame);
+static obj_t *lib_integerp(obj_t **frame);
+
 static obj_t *lib_rtinfo(obj_t **frame);
+static obj_t *lib_eval(obj_t **frame);
+static obj_t *lib_apply(obj_t **frame);
 
 static obj_t *lib_display(obj_t **frame);
+static obj_t *lib_newline(obj_t **frame);
 
 static procdef_t library[] = {
     // Arith
@@ -33,11 +41,20 @@ static procdef_t library[] = {
     {"car", lib_car},
     {"cdr", lib_cdr},
 
+    // Type predicates
+    {"null?", lib_nullp},
+    {"pair?", lib_pairp},
+    {"symbol?", lib_symbolp},
+    {"integer?", lib_integerp},
+
     // Runtime Reflection
     {"runtime-info", lib_rtinfo},
+    {"eval", lib_eval},
+    {"apply", lib_apply},
 
     // IO
     {"display", lib_display},
+    {"newline", lib_newline},
 
     // Sentinel
     {NULL, NULL}
@@ -55,6 +72,18 @@ slib_open(obj_t *env)
         pair_set_car(env, pair_wrap(NULL, binding, pair_car(env)));
     }
     gc_set_enabled(1);
+}
+
+bool_t
+lib_is_eval_proc(obj_t *proc)
+{
+    return proc->as_proc.func == lib_eval;
+}
+
+bool_t
+lib_is_apply_proc(obj_t *proc)
+{
+    return proc->as_proc.func == lib_apply;
 }
 
 // Definations
@@ -137,6 +166,54 @@ lib_cdr(obj_t **frame)
 }
 
 static obj_t *
+lib_nullp(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        return boolean_wrap(nullp(*frame_ref(frame, 0)));
+    }
+    else {
+        fatal_error("null? require 1 argument");
+    }
+}
+
+static obj_t *
+lib_pairp(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        return boolean_wrap(pairp(*frame_ref(frame, 0)));
+    }
+    else {
+        fatal_error("pair? require 1 argument");
+    }
+}
+
+static obj_t *
+lib_symbolp(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        return boolean_wrap(symbolp(*frame_ref(frame, 0)));
+    }
+    else {
+        fatal_error("symbol? require 1 argument");
+    }
+}
+
+static obj_t *
+lib_integerp(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        return boolean_wrap(fixnump(*frame_ref(frame, 0)));
+    }
+    else {
+        fatal_error("integer? require 1 argument");
+    }
+}
+
+static obj_t *
 lib_rtinfo(obj_t **frame)
 {
     LIB_PROC_HEADER();
@@ -151,6 +228,18 @@ lib_rtinfo(obj_t **frame)
 }
 
 static obj_t *
+lib_eval(obj_t **frame)
+{
+    fatal_error("eval is never called directly");
+}
+
+static obj_t *
+lib_apply(obj_t **frame)
+{
+    fatal_error("apply is never called directly");
+}
+
+static obj_t *
 lib_display(obj_t **frame)
 {
     LIB_PROC_HEADER();
@@ -162,3 +251,17 @@ lib_display(obj_t **frame)
         fatal_error("display require 1 argument");
     }
 }
+
+static obj_t *
+lib_newline(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    if (argc == 0) {
+        puts("");
+        return unspec_wrap();
+    }
+    else {
+        fatal_error("newline require no arguments");
+    }
+}
+

@@ -5,5 +5,5 @@
        (if (< n 2) n
          (+ (fibo (- n 1))
             (fibo (- n 2))))))
-   (display (fibo 34))))
+   (display (fibo 24))))
 

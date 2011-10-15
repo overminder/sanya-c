@@ -66,8 +66,7 @@ typedef struct {
     type_t ob_type; \
     bool_t ob_allocated; \
     bool_t ob_bar; \
-    uint32_t ob_size; \
-    obj_t *back_ptr
+    uint32_t ob_size
 
 typedef struct {
     OB_HEADER;

@@ -27,6 +27,11 @@ repl()
         obj_t **ext_frame = frame_extend(frame, 1,
                                          FR_SAVE_PREV | FR_EXTEND_ENV);
         expr = scm_parse_string(line);
+        if (!expr) {
+            puts("");
+            continue;
+        }
+
         *frame_ref(ext_frame, 0) = expr;
         expr = eval_frame(ext_frame);
 

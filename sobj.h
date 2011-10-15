@@ -60,6 +60,7 @@ typedef struct {
     obj_t *body;
 } closure_obj_t;
 
+// 16-byte for each object...
 #define OB_HEADER \
     obj_t * gc_next; \
     bool_t gc_marked; \
@@ -93,7 +94,7 @@ const char *get_typename(obj_t *self);
 bool_t to_boolean(obj_t *self);
 void print_repr(obj_t *self, FILE *stream);
 
-// Type predicated
+// Type predicates
 bool_t nullp(obj_t *self);
 bool_t pairp(obj_t *self);
 bool_t symbolp(obj_t *self);

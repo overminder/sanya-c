@@ -5,6 +5,7 @@
 
 #include "sobj.h"
 
+// Place object. on the frame so collector can find them.
 #define SGC_ROOT1(frame_ptr, o) \
     do { \
         --frame_ptr; \

@@ -3,7 +3,7 @@
    (define fibo
      (lambda (n)
        (if (< n 2) n
-         (+ (fibo (- n 1))
-            (fibo (- n 2))))))
+         (+ (apply fibo (cons (- n 1) '()))
+            (apply fibo (cons (- n 2) '()))))))
    (display (fibo 24))))
 

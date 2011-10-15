@@ -4,6 +4,6 @@
  (define loop
    (lambda (n)
      (if (lt 0 n)
-       (loop (minus n 1))
+       (apply loop (cons (minus n 1) '()))
        '())))
  (loop 100000)))

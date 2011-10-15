@@ -24,7 +24,8 @@ static obj_t *eval_symbol(obj_t **frame);
 static obj_t *apply_procedure(obj_t **frame);
 
 // Currently the environment is implemented as a list.
-// Environment will point to its parent on the previous frame.
+// e.g., (env . outer-env)
+// Where env is ((key . value) (key2 . value2) ...)
 
 void
 seval_init()
@@ -56,11 +57,9 @@ seval_init()
 }
 
 // Frame layout:
-// *(fp)    *(fp + 1) *(fp + 2)  ...  *(fp + size + 2)
-// prev-fp   environ   arg0      arg1    argn
+// *(fp)   *(fp + 1)       *(fp + 2)  ...  *(fp + size + 1)
+//  env    pref-frame-ptr   arg0      arg1    argn
 //
-// Which is to say, if there is no size, *fp will be previous frame's prev-fp
-
 obj_t **frame_extend(obj_t **old_frame, size_t size,
                      enum frame_extend_flag flags)
 {
@@ -129,7 +128,8 @@ frame_ref(obj_t **frame, long index)
 }
 
 
-// For tail's purpose, eval-related things are placed here.
+// main entrance for eval.
+// For tail's purpose, eval-related things are all placed here.
 obj_t *
 eval_frame(obj_t **frame)
 {
@@ -272,10 +272,11 @@ tailcall:
                 --frame;
                 *frame = proc;
 // XXX
-// XXX: WARNING -- Frame is UNUSABLE DURING APPLICATION PREPARATION
+// XXX: WARNING -- Frame is UNUSABLE during application preparation
 // XXX
             }
 
+            // Get the argument list.
             // Two pass -- 1: get argc and fill the frame slots with
             // list items waiting for evaluation.
 apply_reentry:
@@ -341,7 +342,7 @@ apply_reentry:
                     return apply_procedure(frame);
                 }
                 else {
-                    // Is scm-closure: (HARD PART COMES)
+                    // Is scm-closure: *HARD PART COMES*
                     // Remember the frame layout:
                     //   [env, dumped-fp, argn, ..., arg0, callable]
                     // 1: prepare for an extended env
@@ -349,7 +350,7 @@ apply_reentry:
                     env = extend_env(frame, closure_env(proc));
                     frame_set_env(frame, env);  // Prevent from gc
 
-                    // 2: push bindings into it -- pos args only now.
+                    // 2: push bindings into it -- pos args only for now.
                     // XXX: arg length check.
                     formals = closure_formals(proc);
                     for (i = argc - 1; i >= 0; --i) {
@@ -365,7 +366,8 @@ apply_reentry:
                     // 3: make it a begin.
                     body = pair_wrap(frame, symbol_begin, closure_body(proc));
 
-                    // 4: unwind the frame until the very beginning.
+                    // 4: unwind the frame since we have finished the binding
+                    // and start to evaluating the begin.
                     {
                         frame = orig_frame;
                         *frame_ref(frame, 0) = body;

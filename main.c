@@ -11,7 +11,7 @@ extern obj_t *scm_parse_file(FILE *);
 int g_argc;
 char **g_argv;
 
-void
+static void
 repl()
 {
     obj_t *expr;
@@ -45,7 +45,7 @@ repl()
     }
 }
 
-void
+static void
 run_file()
 {
     obj_t *expr;
@@ -58,6 +58,7 @@ run_file()
     *frame_ref(frame, 0) = expr;
     eval_frame(frame);
 }
+
 
 int
 main(int argc, char **argv)

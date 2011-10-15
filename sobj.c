@@ -149,6 +149,9 @@ print_repr(obj_t *self, FILE *stream)
     case TP_UDATA:
         fprintf(stream, "#<user-data>");
         break;
+
+    default:
+        NOT_REACHED();
     }
 }
 
@@ -236,7 +239,10 @@ fixnum_wrap(obj_t **frame_ptr, long ival)
 long
 fixnum_unwrap(obj_t *self)
 {
-    return self->as_fixnum.val;
+    if (fixnump(self))
+        return self->as_fixnum.val;
+    else
+        fatal_error("not a fixnum");
 }
 
 // Flonum
@@ -286,25 +292,37 @@ pair_wrap(obj_t **frame_ptr, obj_t *car, obj_t *cdr)
 obj_t *
 pair_car(obj_t *self)
 {
-    return self->as_pair.car;
+    if (pairp(self))
+        return self->as_pair.car;
+    else
+        fatal_error("not a pair");
 }
 
 obj_t *
 pair_cdr(obj_t *self)
 {
-    return self->as_pair.cdr;
+    if (pairp(self))
+        return self->as_pair.cdr;
+    else
+        fatal_error("not a pair");
 }
 
 void
 pair_set_car(obj_t *self, obj_t *car)
 {
-    self->as_pair.car = car;
+    if (pairp(self))
+        self->as_pair.car = car;
+    else
+        fatal_error("not a pair");
 }
 
 void
 pair_set_cdr(obj_t *self, obj_t *cdr)
 {
-    self->as_pair.cdr = cdr;
+    if (pairp(self))
+        self->as_pair.cdr = cdr;
+    else
+        fatal_error("not a pair");
 }
 
 // Symbol
@@ -329,7 +347,10 @@ symbol_wrap(obj_t **frame_ptr, const char *sval)
 const char *
 symbol_unwrap(obj_t *self)
 {
-    return self->as_symbol.val;
+    if (symbolp(self))
+        return self->as_symbol.val;
+    else
+        fatal_error("not a symbol");
 }
 
 static long
@@ -407,7 +428,10 @@ proc_wrap(obj_t **frame_ptr, sobj_funcptr_t func)
 sobj_funcptr_t
 proc_unwrap(obj_t *self)
 {
-    return self->as_proc.func;
+    if (procedurep(self))
+        return self->as_proc.func;
+    else
+        fatal_error("not a procedure");
 }
 
 obj_t *
@@ -434,19 +458,28 @@ closure_wrap(obj_t **frame_ptr, obj_t *env, obj_t *formals, obj_t *body)
 obj_t *
 closure_env(obj_t *self)
 {
-    return self->as_closure.env;
+    if (closurep(self))
+        return self->as_closure.env;
+    else
+        fatal_error("not a closure");
 }
 
 obj_t *
 closure_formals(obj_t *self)
 {
-    return self->as_closure.formals;
+    if (closurep(self))
+        return self->as_closure.formals;
+    else
+        fatal_error("not a closure");
 }
 
 obj_t *
 closure_body(obj_t *self)
 {
-    return self->as_closure.body;
+    if (closurep(self))
+        return self->as_closure.body;
+    else
+        fatal_error("not a closure");
 }
 
 // Static functions

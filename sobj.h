@@ -64,9 +64,10 @@ typedef struct {
     obj_t * gc_next; \
     bool_t gc_marked; \
     type_t ob_type; \
-    bool_t ob_foo; \
+    bool_t ob_allocated; \
     bool_t ob_bar; \
-    uint32_t ob_size
+    uint32_t ob_size; \
+    obj_t *back_ptr
 
 typedef struct {
     OB_HEADER;
@@ -89,6 +90,7 @@ void sobj_init();
 
 // Generic
 type_t get_type(obj_t *self);
+const char *get_typename(obj_t *self);
 bool_t to_boolean(obj_t *self);
 void print_repr(obj_t *self, FILE *stream);
 

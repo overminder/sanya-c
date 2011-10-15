@@ -4,7 +4,7 @@
 #include "sgc.h"
 #include "sobj.h"
 
-#define ALWAYS_COLLECT
+//#define ALWAYS_COLLECT
 
 static header_obj_t w_nil;
 static header_obj_t w_true;
@@ -15,6 +15,7 @@ static obj_t *symbol_table = NULL;
 static obj_t *default_gc_visitor(obj_t *self);
 static void default_gc_finalizer(obj_t *self);
 static obj_t *pair_gc_visitor(obj_t *self);
+static obj_t *closure_gc_visitor(obj_t *self);
 
 void
 sobj_init()
@@ -35,7 +36,7 @@ sobj_init()
     gc_register_type(TP_PROC, default_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_FIXNUM, default_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_FLONUM, default_gc_visitor, default_gc_finalizer);
-    gc_register_type(TP_CLOSURE, default_gc_visitor, default_gc_finalizer);
+    gc_register_type(TP_CLOSURE, closure_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_NIL, default_gc_visitor, default_gc_finalizer);
     //gc_register_type(TP_VECTOR, default_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_BOOLEAN, default_gc_visitor, default_gc_finalizer);
@@ -53,6 +54,25 @@ type_t
 get_type(obj_t *self)
 {
     return self->ob_type;
+}
+
+const char *
+get_typename(obj_t *self)
+{
+    switch (get_type(self)) {
+    case TP_PAIR: return "pair";
+    case TP_SYMBOL: return "symbol";
+    case TP_PROC: return "procedure";
+    case TP_FIXNUM: return "fixnum";
+    case TP_FLONUM: return "flonum";
+    case TP_CLOSURE: return "closure";
+    case TP_NIL: return "nil";
+    case TP_VECTOR: return "vector";
+    case TP_BOOLEAN: return "boolean";
+    case TP_UNSPECIFIED: return "unspecified";
+    case TP_UDATA: return "udata";
+    }
+    NOT_REACHED();
 }
 
 bool_t to_boolean(obj_t *self)
@@ -103,7 +123,11 @@ print_repr(obj_t *self, FILE *stream)
         break;
 
     case TP_CLOSURE:
-        fprintf(stream, "#<closure at %p>", NULL);
+        fprintf(stream, "#<closure env=%p formals=", closure_env(self));
+        print_repr(closure_formals(self), stream);
+        fprintf(stream, " body=");
+        print_repr(closure_body(self), stream);
+        fprintf(stream, ">");
         break;
 
     case TP_NIL:
@@ -246,9 +270,10 @@ pair_wrap(obj_t **frame_ptr, obj_t *car, obj_t *cdr)
 #ifndef ALWAYS_COLLECT
     if (!self) {
 #endif
-        if (gc_is_enabled())
+        if (gc_is_enabled()) {
             SGC_ROOT2(frame_ptr, car, cdr);
-        gc_collect(frame_ptr);
+            gc_collect(frame_ptr);
+        }
         self = gc_malloc(sizeof(pair_obj_t), TP_PAIR);
 #ifndef ALWAYS_COLLECT
     }
@@ -392,9 +417,10 @@ closure_wrap(obj_t **frame_ptr, obj_t *env, obj_t *formals, obj_t *body)
 #ifndef ALWAYS_COLLECT
     if (!self) {
 #endif
-        if (gc_is_enabled())
+        if (gc_is_enabled()) {
             SGC_ROOT3(frame_ptr, env, formals, body);
-        gc_collect(frame_ptr);
+            gc_collect(frame_ptr);
+        }
         self = gc_malloc(sizeof(closure_obj_t), TP_CLOSURE);
 #ifndef ALWAYS_COLLECT
     }
@@ -442,5 +468,13 @@ pair_gc_visitor(obj_t *self)
 {
     gc_mark(pair_car(self));
     return pair_cdr(self);
+}
+
+static obj_t *
+closure_gc_visitor(obj_t *self)
+{
+    gc_mark(closure_env(self));
+    gc_mark(closure_formals(self));
+    return closure_body(self);
 }
 

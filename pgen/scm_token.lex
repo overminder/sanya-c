@@ -17,14 +17,28 @@
     return T_PERIOD;
 }
 
+"'" {
+    return T_QUOTE;
+}
+
+"#t" {
+    yylval.obj_val = make_true();
+    return T_EXPR;
+}
+
+"#f" {
+    yylval.obj_val = make_false();
+    return T_EXPR;
+}
+
 -?[0-9]+ {
     yylval.obj_val = make_fixnum(yytext);
-    return T_FIXNUM;
+    return T_EXPR;
 }
 
 [\+\-\*\^\?a-zA-Z!<=>\_~/$%&:][\+\-\*\^\?a-zA-Z0-9!<=>\_~/$%&:]* {
     yylval.obj_val = make_symbol(yytext);
-    return T_SYMBOL;
+    return T_EXPR;
 }
 
 [ \n\t]+ ;

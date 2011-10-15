@@ -110,8 +110,8 @@ static obj_t *last_expr;
      T_LPAREN = 258,
      T_RPAREN = 259,
      T_PERIOD = 260,
-     T_SYMBOL = 261,
-     T_FIXNUM = 262
+     T_QUOTE = 261,
+     T_EXPR = 262
    };
 #endif
 
@@ -354,7 +354,7 @@ union yyalloc
 #endif
 
 /* YYFINAL -- State number of the termination state.  */
-#define YYFINAL  9
+#define YYFINAL  10
 /* YYLAST -- Last index in YYTABLE.  */
 #define YYLAST   12
 
@@ -365,7 +365,7 @@ union yyalloc
 /* YYNRULES -- Number of rules.  */
 #define YYNRULES  9
 /* YYNRULES -- Number of states.  */
-#define YYNSTATES  14
+#define YYNSTATES  15
 
 /* YYTRANSLATE(YYLEX) -- Bison symbol number corresponding to YYLEX.  */
 #define YYUNDEFTOK  2
@@ -411,15 +411,15 @@ static const yytype_uint8 yytranslate[] =
    YYRHS.  */
 static const yytype_uint8 yyprhs[] =
 {
-       0,     0,     3,     5,     7,     9,    11,    15,    19,    22
+       0,     0,     3,     5,     7,     9,    12,    16,    20,    23
 };
 
 /* YYRHS -- A `-1'-separated list of the rules' RHS.  */
 static const yytype_int8 yyrhs[] =
 {
-       9,     0,    -1,    10,    -1,     6,    -1,     7,    -1,    11,
-      -1,     3,    12,     4,    -1,    10,     5,    10,    -1,    10,
-      12,    -1,    -1
+       9,     0,    -1,    10,    -1,     7,    -1,    11,    -1,     6,
+      10,    -1,     3,    12,     4,    -1,    10,     5,    10,    -1,
+      10,    12,    -1,    -1
 };
 
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
@@ -435,7 +435,7 @@ static const yytype_uint8 yyrline[] =
 static const char *const yytname[] =
 {
   "$end", "error", "$undefined", "T_LPAREN", "T_RPAREN", "T_PERIOD",
-  "T_SYMBOL", "T_FIXNUM", "$accept", "prog", "sexpr", "list", "pair", 0
+  "T_QUOTE", "T_EXPR", "$accept", "prog", "sexpr", "list", "pair", 0
 };
 #endif
 
@@ -457,7 +457,7 @@ static const yytype_uint8 yyr1[] =
 /* YYR2[YYN] -- Number of symbols composing right hand side of rule YYN.  */
 static const yytype_uint8 yyr2[] =
 {
-       0,     2,     1,     1,     1,     1,     3,     3,     2,     0
+       0,     2,     1,     1,     1,     2,     3,     3,     2,     0
 };
 
 /* YYDEFACT[STATE-NAME] -- Default rule to reduce with in state
@@ -465,8 +465,8 @@ static const yytype_uint8 yyr2[] =
    means the default is an error.  */
 static const yytype_uint8 yydefact[] =
 {
-       0,     9,     3,     4,     0,     2,     5,     9,     0,     1,
-       0,     8,     6,     7
+       0,     9,     0,     3,     0,     2,     4,     9,     0,     5,
+       1,     0,     8,     6,     7
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
@@ -480,14 +480,14 @@ static const yytype_int8 yydefgoto[] =
 #define YYPACT_NINF -3
 static const yytype_int8 yypact[] =
 {
-       5,     5,    -3,    -3,     2,    -3,    -3,    -2,     3,    -3,
-       5,    -3,    -3,    -3
+       3,     3,     3,    -3,     7,    -3,    -3,    -2,     4,    -3,
+      -3,     3,    -3,    -3,    -3
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-      -3,    -3,     0,    -3,    -1
+      -3,    -3,     0,    -3,     5
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]].  What to do in state STATE-NUM.  If
@@ -497,22 +497,22 @@ static const yytype_int8 yypgoto[] =
 #define YYTABLE_NINF -1
 static const yytype_uint8 yytable[] =
 {
-       5,     1,     9,    10,     2,     3,    11,    12,     1,     0,
-      13,     2,     3
+       5,     1,     9,    11,     2,     3,     1,    10,    13,     2,
+       3,    14,    12
 };
 
-static const yytype_int8 yycheck[] =
+static const yytype_uint8 yycheck[] =
 {
-       0,     3,     0,     5,     6,     7,     7,     4,     3,    -1,
-      10,     6,     7
+       0,     3,     2,     5,     6,     7,     3,     0,     4,     6,
+       7,    11,     7
 };
 
 /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
    symbol of state STATE-NUM.  */
 static const yytype_uint8 yystos[] =
 {
-       0,     3,     6,     7,     9,    10,    11,    10,    12,     0,
-       5,    12,     4,    10
+       0,     3,     6,     7,     9,    10,    11,    10,    12,    10,
+       0,     5,    12,     4,    10
 };
 
 #define yyerrok		(yyerrstatus = 0)
@@ -1351,7 +1351,7 @@ yyreduce:
 
 /* Line 1455 of yacc.c  */
 #line 28 "pgen/scm_syntax.y"
-    { (yyval.obj_val) = (yyvsp[(1) - (1)].obj_val); ;}
+    { (yyval.obj_val) = make_quoted((yyvsp[(2) - (2)].obj_val)); ;}
     break;
 
   case 6:
@@ -1610,6 +1610,16 @@ scm_parse_string(char *s)
     yyparse();
     gc_set_enabled(1);
     yy_delete_buffer(buf);
+    return last_expr;
+}
+
+obj_t *
+scm_parse_file(FILE *fp)
+{
+    yyin = fp;
+    gc_set_enabled(0);
+    yyparse();
+    gc_set_enabled(1);
     return last_expr;
 }
 

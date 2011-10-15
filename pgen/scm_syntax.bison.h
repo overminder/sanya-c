@@ -42,8 +42,8 @@
      T_LPAREN = 258,
      T_RPAREN = 259,
      T_PERIOD = 260,
-     T_SYMBOL = 261,
-     T_FIXNUM = 262
+     T_QUOTE = 261,
+     T_EXPR = 262
    };
 #endif
 

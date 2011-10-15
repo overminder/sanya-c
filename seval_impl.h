@@ -1,25 +1,22 @@
+#ifndef SEVAL_IMPL_H
+#define SEVAL_IMPL_H
 
+#define pair_caar(o) (pair_car(pair_car(o)))
+#define pair_cadr(o) (pair_car(pair_cdr(o)))
+#define pair_cddr(o) (pair_cdr(pair_cdr(o)))
+
+#define pair_caaar(o) (pair_car(pair_caar(o)))
+#define pair_caadr(o) (pair_car(pair_cadr(o)))
+#define pair_caddr(o) (pair_car(pair_cddr(o)))
+#define pair_cdddr(o) (pair_cdr(pair_cddr(o)))
+
+// How many slots of meta data do we store on the frame?
+// We have one slot for environment and one for saved frame pointer.
 #define NB_FRAME_META_SLOTS 2
 
-#define USING_FRAME(frame) \
-    obj_t **_ob_stack = frame + NB_FRAME_META_SLOTS
-
-#define NEW_FRAME(frame, size) \
-    frame = new_frame(frame, size); \
-    USING_FRAME(frame)
-
-#define DESTROY_FRAME(frame, size) \
-    frame += size + NB_FRAME_META_SLOTS;
-
-#define FRAME_SLOT(n)       (_ob_stack[n])
-#define FRAME_ENV()         (_ob_stack[-2])
-#define FRAME_DUMP()        (_ob_stack[-1])
-
-#define PROC_ARGC() \
-    (((obj_t **)FRAME_DUMP() - 1) - &FRAME_SLOT(0))
-
 #define LIB_PROC_HEADER() \
-    USING_FRAME(frame); \
-    size_t argc = PROC_ARGC(); \
-    long i;
+    obj_t **prev_frame = frame_prev(frame); \
+    long argc = prev_frame - frame - NB_FRAME_META_SLOTS - 1; \
+    long i
 
+#endif /* SEVAL_IMPL_H */

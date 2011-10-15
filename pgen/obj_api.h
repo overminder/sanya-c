@@ -27,5 +27,22 @@ make_nil()
     return nil_wrap();
 }
 
+static obj_t *
+make_true()
+{
+    return boolean_wrap(1);
+}
+
+static obj_t *
+make_false()
+{
+    return boolean_wrap(0);
+}
+
+static obj_t *
+make_quoted(obj_t *item)
+{
+    return make_pair(make_symbol("quote"), make_pair(item, make_nil()));
+}
 
 #endif /* OBJ_API_H */

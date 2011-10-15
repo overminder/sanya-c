@@ -8,12 +8,14 @@ static bool_t gc_enabled = 1;
 static gc_visitor_t visitor_types[256];
 static gc_finalizer_t finalizer_types[256];
 
+// 8K pointers, 64KByte of stack.
 static const size_t STACK_SIZE = 1024 * 8;
+
 // @see seval:new_frame() to see the frame layout.
 static obj_t **stack = NULL;
 static obj_t **sp;
 
-#define MIN_HEAP_SIZE 512
+#define MIN_HEAP_SIZE (1024 * 1024 * 4)
 static obj_t *gc_head = NULL;
 static size_t next_collect = MIN_HEAP_SIZE;
 static const double expand_factor = 1.5;
@@ -85,6 +87,9 @@ gc_mark(obj_t *self)
 {
     size_t mark_count = 0;
     while (self && !self->gc_marked) {
+        // Debug
+        //fprintf(stderr, "(MARK! %p) [%ld]\n", self, mark_count);
+
         ++mark_count;
         self->gc_marked = 1;
         self = visitor_types[get_type(self)](self);
@@ -102,14 +107,14 @@ gc_collect(obj_t **frame_ptr)
 
     if (!gc_enabled) {
         // Debug
-        fprintf(stderr, "; heap (%ld/%ld), gc supressed...\n",
-                heap_size, next_collect);
+        //fprintf(stderr, "; heap (%ld/%ld), gc supressed...\n",
+        //        heap_size, next_collect);
         return 0;
     }
 
     // Debug
-    fprintf(stderr, "; heap (%ld/%ld), gc collecting...\n",
-            heap_size, next_collect);
+    //fprintf(stderr, "; heap (%ld/%ld), gc collecting...\n",
+    //        heap_size, next_collect);
 
     // Firstly mark the stack
     for (iter = frame_ptr; iter < stack + STACK_SIZE; ++iter) {
@@ -123,12 +128,17 @@ gc_collect(obj_t **frame_ptr)
 
     // Then sweep. Don't look at the head now.
     if (gc_head) {
-        for (self = gc_head; self && self->gc_next; self = self->gc_next) {
+        self = gc_head;
+        // XXX: Be careful when writing singly-linked-list...
+        while (self->gc_next) {
             victim = self->gc_next;
             if (!victim->gc_marked) {
                 self->gc_next = victim->gc_next;
                 heap_size -= victim->ob_size;
                 finalizer_types[get_type(victim)](victim);
+            }
+            else {
+                self = self->gc_next;
             }
         }
 
@@ -142,8 +152,10 @@ gc_collect(obj_t **frame_ptr)
     }
 
     // Clean marks
-    for (self = gc_head; self; self = self->gc_next)
+    for (self = gc_head; self; self = self->gc_next) {
+        // Must be all marked
         self->gc_marked = 0;
+    }
 
     bytes_freed = size_pre_gc - heap_size;
 
@@ -154,8 +166,8 @@ gc_collect(obj_t **frame_ptr)
     }
 
     // Debug
-    fprintf(stderr, ";collection result => (%ld/%ld), %lu bytes freed\n",
-            heap_size, next_collect, bytes_freed);
+    //fprintf(stderr, "; collection result => (%ld/%ld), %lu bytes freed\n",
+    //        heap_size, next_collect, bytes_freed);
 
     return bytes_freed;
 }
@@ -183,3 +195,42 @@ gc_incr_stack_base(long nb_incr)
 {
     sp += nb_incr;
 }
+
+void
+gc_print_heap()
+{
+    obj_t *iter;
+    long i = 0;
+    fprintf(stderr, "\nGC-PRINT-HEAP\n=============\n\n");
+    for (iter = gc_head; iter; iter = iter->gc_next) {
+        fprintf(stderr, "#%3ld  %p  ", i++, iter);
+        print_repr(iter, stderr);
+        fprintf(stderr, "\n");
+    }
+    fprintf(stderr, "\n");
+    fprintf(stderr, "\n*************\nGC-PRINT-HEAP\n\n");
+}
+
+void
+gc_print_stack(obj_t **frame)
+{
+    obj_t **iter;
+    long i = 0;
+    fprintf(stderr, "\nGC-PRINT-STACK\n==============\n\n");
+    for (iter = frame; iter < stack + STACK_SIZE; ++iter) {
+        // If *iter is in the stack, then just ignore it.
+        if ((obj_t **)*iter > iter && (obj_t **)*iter < stack + STACK_SIZE) {
+            fprintf(stderr, "#%3ld  %p  [frame-pointer-dump]\n", i++, *iter);
+        }
+        else if (!*iter) {
+            fprintf(stderr, "#%3ld  %p\n", i++, *iter);
+        }
+        else {
+            fprintf(stderr, "#%3ld  %p  ", i++, *iter);
+            print_repr(*iter, stderr);
+            fprintf(stderr, "\n");
+        }
+    }
+    fprintf(stderr, "\n**************\nGC-PRINT-STACK\n\n");
+}
+

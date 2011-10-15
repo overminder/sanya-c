@@ -8,8 +8,8 @@ static obj_t *last_expr;
 
 %}
 
-%token T_LPAREN T_RPAREN T_PERIOD
-%token <obj_val> T_SYMBOL T_FIXNUM
+%token T_LPAREN T_RPAREN T_PERIOD T_QUOTE
+%token <obj_val> T_EXPR
 %type <obj_val> sexpr pair list prog
 
 %union {
@@ -23,9 +23,9 @@ prog: sexpr {
     last_expr = $1;
 }
 
-sexpr: T_SYMBOL { $$ = $1; }
-     | T_FIXNUM { $$ = $1; }
+sexpr: T_EXPR { $$ = $1; }
      | list { $$ = $1; }
+     | T_QUOTE sexpr { $$ = make_quoted($2); }
 
 list: T_LPAREN pair T_RPAREN { $$ = $2 }
 
@@ -45,6 +45,16 @@ scm_parse_string(char *s)
     yyparse();
     gc_set_enabled(1);
     yy_delete_buffer(buf);
+    return last_expr;
+}
+
+obj_t *
+scm_parse_file(FILE *fp)
+{
+    yyin = fp;
+    gc_set_enabled(0);
+    yyparse();
+    gc_set_enabled(1);
     return last_expr;
 }
 

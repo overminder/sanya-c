@@ -324,7 +324,7 @@ extern int yylex (void);
 #undef YY_DECL
 #endif
 
-#line 32 "pgen/scm_token.lex"
+#line 46 "pgen/scm_token.lex"
 
 
 #line 331 "pgen/scm_token.flex.h"

@@ -81,6 +81,24 @@ make_quoted(obj_t *item)
 }
 
 static obj_t *
+make_quasiquoted(obj_t *item)
+{
+    return make_pair(make_symbol("quasiquote"), make_pair(item, make_nil()));
+}
+
+static obj_t *
+make_unquoted(obj_t *item)
+{
+    return make_pair(make_symbol("unquote"), make_pair(item, make_nil()));
+}
+
+static obj_t *
+make_splicing(obj_t *item)
+{
+    return make_pair(make_symbol("unquote-splicing"), make_pair(item, make_nil()));
+}
+
+static obj_t *
 make_vector(obj_t *lis)
 {
     return vector_from_list(NULL, lis);

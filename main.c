@@ -27,7 +27,7 @@ repl()
         "      (repl))))"
         "(repl)";
     obj_t **frame = frame_extend(gc_get_stack_base(), 1,
-                                 FR_SAVE_PREV | FR_EXTEND_ENV);
+                                 FR_SAVE_PREV | FR_CONTINUE_ENV);
     // Factor it.
     slib_primitive_load_string(frame, prog);
 }
@@ -36,7 +36,7 @@ static void
 run_file()
 {
     obj_t **frame = frame_extend(gc_get_stack_base(), 1,
-                                 FR_SAVE_PREV | FR_EXTEND_ENV);
+                                 FR_SAVE_PREV | FR_CONTINUE_ENV);
     slib_primitive_load(frame, g_argv[1]);
 }
 

@@ -21,6 +21,18 @@
     return T_QUOTE;
 }
 
+"`" {
+    return T_QUASIQUOTE;
+}
+
+",@" {
+    return T_SPLICING;
+}
+
+"," {
+    return T_UNQUOTE;
+}
+
 "#t" {
     yylval.obj_val = make_true();
     return T_EXPR;

@@ -10,6 +10,7 @@ static obj_t **prog_frame;
 %}
 
 %token T_LPAREN T_RPAREN T_PERIOD T_QUOTE T_SHARPLPAREN
+%token T_QUASIQUOTE T_UNQUOTE T_SPLICING
 %token <obj_val> T_EXPR
 %type <obj_val> sexpr pair list prog vector
 
@@ -26,6 +27,9 @@ sexpr: T_EXPR { $$ = $1; }
      | list { $$ = $1; }
      | vector { $$ = $1; }
      | T_QUOTE sexpr { $$ = make_quoted($2); }
+     | T_QUASIQUOTE sexpr { $$ = make_quasiquoted($2); }
+     | T_UNQUOTE sexpr { $$ = make_unquoted($2); }
+     | T_SPLICING sexpr { $$ = make_splicing($2); }
 
 vector: T_SHARPLPAREN pair T_RPAREN { $$ = make_vector($2); }
 

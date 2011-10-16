@@ -4,11 +4,6 @@
 #include "seval_impl.h"
 #include "slib.h"
 
-enum lookup_flag {
-    DONT_LOOK_OUTER,
-    LOOK_OUTER
-};
-
 static obj_t *symbol_if,
              *symbol_lambda,
              *symbol_define,
@@ -16,10 +11,6 @@ static obj_t *symbol_if,
              *symbol_begin,
              *symbol_quote;
 
-static obj_t *extend_env(obj_t **frame, obj_t *outer_env);
-static obj_t *def_binding(obj_t **frame, obj_t *key, obj_t *value);
-static obj_t *set_binding(obj_t **frame, obj_t *key, obj_t *value);
-static obj_t *lookup_binding(obj_t **frame, obj_t *key, enum lookup_flag flag);
 static obj_t *eval_symbol(obj_t **frame);
 static obj_t *apply_procedure(obj_t **frame);
 
@@ -49,7 +40,7 @@ seval_init()
 
     // The very first frame.
     frame = frame_extend(frame, 0, FR_CLEAR_SLOTS);
-    frame_set_env(frame, extend_env(frame, nil_wrap()));
+    frame_set_env(frame, environ_wrap(frame, nil_wrap()));
     gc_set_stack_base(frame);
 
     // Adding some library functions.
@@ -91,7 +82,7 @@ obj_t **frame_extend(obj_t **old_frame, size_t size,
 
     // Extend and save the previous environment pointer on the new frame.
     if (flags & FR_EXTEND_ENV) {
-        frame_set_env(new_frame, extend_env(new_frame, old_env));
+        frame_set_env(new_frame, environ_wrap(new_frame, old_env));
     }
 
     return new_frame;
@@ -176,23 +167,38 @@ tailcall:
                 goto tailcall;
             }
             else if (car == symbol_lambda) {
-                return closure_wrap(frame, frame_env(frame),
+                return closure_wrap(frame, frame_env(frame_prev(frame)),
                                     pair_car(cdr), pair_cdr(cdr));
             }
             else if (car == symbol_define) {
                 w = pair_car(cdr);
-                if (get_type(w) != TP_SYMBOL) {
-                    fatal_error("define -- key must be symbol");
+                if (symbolp(w)) {
+                    // x: the expression
+                    x = pair_car(pair_cdr(cdr));
+                    {
+                        // Get the value of the expression before binding.
+                        obj_t **expr_frame = frame_extend(
+                                frame, 1, FR_EXTEND_ENV | FR_SAVE_PREV);
+                        *frame_ref(expr_frame, 0) = x;
+                        x = eval_frame(expr_frame);
+                    }
                 }
-                x = pair_car(pair_cdr(cdr));
-                {
-                    // Get the value of the expression before binding.
-                    obj_t **expr_frame = frame_extend(
-                            frame, 1, FR_EXTEND_ENV | FR_SAVE_PREV);
-                    *frame_ref(expr_frame, 0) = x;
-                    x = eval_frame(expr_frame);
+                else if (pairp(w)) {
+                    // x: the formals, v: the body
+                    x = pair_cdr(w);
+                    w = pair_car(w);
+                    v = pair_cdr(cdr);
+                    x = closure_wrap(frame, frame_env(frame_prev(frame)),
+                                     x, v);
                 }
-                def_binding(frame_prev(frame), w, x);
+                else {
+                    fatal_error("define -- first argument is neither a "
+                                "symbol nor a pair");
+                }
+                // Definitely a hack .... Should never try to unify
+                // gc-root/env/frame without really knowing what
+                // I'm doing.....
+                environ_def(frame, frame_env(frame_prev(frame)), w, x);
                 return unspec_wrap();
             }
             else if (car == symbol_set) {
@@ -208,7 +214,7 @@ tailcall:
                     *frame_ref(expr_frame, 0) = x;
                     x = eval_frame(expr_frame);
                 }
-                set_binding(frame_prev(frame), w, x);
+                environ_set(frame_env(frame_prev(frame)), w, x);
                 return unspec_wrap();
             }
             else if (car == symbol_begin) {
@@ -319,12 +325,14 @@ apply_reentry:
                     // Is c-procedure -- just evaluate it.
                     // Note that we will treat apply/eval differently.
                     if (lib_is_eval_proc(proc)) {
-                        if (argc != 1) {
-                            fatal_error("eval should have 1 argument");
+                        if (argc != 2) {
+                            fatal_error("eval should have 2 argument");
                         }
-                        obj_t *expr = *frame_ref(frame, 0);
+                        obj_t *expr = *frame_ref(frame, 1);
+                        obj_t *environ = *frame_ref(frame, 0);
                         frame = orig_frame;
                         *frame_ref(frame, 0) = expr;
+                        frame_set_env(frame, environ);
                         goto tailcall;
                     }
                     else if (lib_is_apply_proc(proc)) {
@@ -347,20 +355,16 @@ apply_reentry:
                     //   [env, dumped-fp, argn, ..., arg0, callable]
                     // 1: prepare for an extended env
                     obj_t *env, *formals, *body;
-                    env = extend_env(frame, closure_env(proc));
+                    env = environ_wrap(frame, closure_env(proc));
                     frame_set_env(frame, env);  // Prevent from gc
 
                     // 2: push bindings into it -- pos args only for now.
                     // XXX: arg length check.
                     formals = closure_formals(proc);
                     for (i = argc - 1; i >= 0; --i) {
-                        obj_t *binding = pair_wrap(frame,
-                                                   pair_car(formals), 
-                                                   *frame_ref(frame, i));
-                        pair_set_car(env,
-                                     pair_wrap(frame,
-                                               binding,
-                                               pair_car(env)));
+                        environ_bind(frame, env,
+                                     pair_car(formals),
+                                     *frame_ref(frame, i));
                         formals = pair_cdr(formals);
                     }
                     // 3: make it a begin.
@@ -401,75 +405,10 @@ apply_reentry:
 }
 
 static obj_t *
-extend_env(obj_t **frame, obj_t *outer_env)
-{
-    return pair_wrap(frame, nil_wrap(), outer_env);
-}
-
-static obj_t *
-def_binding(obj_t **frame, obj_t *key, obj_t *value)
-{
-    obj_t *binding = lookup_binding(frame, key, DONT_LOOK_OUTER);
-    if (binding) {
-        pair_set_cdr(binding, value);
-    }
-    else {
-        frame[-1] = key;
-        frame[-2] = value;
-        binding = pair_wrap(frame - 2, key, value);
-
-        frame[-1] = binding;
-        pair_set_car(frame_env(frame), pair_wrap(frame - 1,
-                                                 binding,
-                                                 pair_car(frame_env(frame))));
-    }
-    return binding;
-}
-
-static obj_t *
-set_binding(obj_t **frame, obj_t *key, obj_t *value)
-{
-    obj_t *binding = lookup_binding(frame, key, LOOK_OUTER);
-    if (binding) {
-        pair_set_cdr(binding, value);
-    }
-    else {
-        fatal_error("set! -- No such binding");
-    }
-    return binding;
-}
-
-static obj_t *
-lookup_binding(obj_t **frame, obj_t *key, enum lookup_flag flag)
-{
-    obj_t *lis;
-    obj_t *env;
-    obj_t *binding;
-
-    env = frame_env(frame);
-
-    while (!nullp(env)) {
-        for (lis = pair_car(env); !nullp(lis); lis = pair_cdr(lis)) {
-            binding = pair_car(lis);
-            if (symbol_eq(pair_car(binding), key)) {
-                return binding;
-            }
-        }
-        if (flag == LOOK_OUTER) {
-            env = pair_cdr(env);
-        }
-        else {
-            break;
-        }
-    }
-    return NULL;
-}
-
-static obj_t *
 eval_symbol(obj_t **frame)
 {
     obj_t *key = *frame_ref(frame, 0);
-    obj_t *binding = lookup_binding(frame, key, LOOK_OUTER);
+    obj_t *binding = environ_lookup(frame_env(frame), key, EL_LOOK_OUTER);
     if (binding)
         return pair_cdr(binding);
     else

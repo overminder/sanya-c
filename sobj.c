@@ -41,6 +41,7 @@ sobj_init()
     //gc_register_type(TP_VECTOR, default_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_BOOLEAN, default_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_UNSPECIFIED, default_gc_visitor, default_gc_finalizer);
+    gc_register_type(TP_ENVIRON, pair_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_UDATA, default_gc_visitor, default_gc_finalizer);
 
     // Symbol table
@@ -123,10 +124,10 @@ print_repr(obj_t *self, FILE *stream)
         break;
 
     case TP_CLOSURE:
-        fprintf(stream, "#<closure env=%p formals=", closure_env(self));
+        fprintf(stream, "#<closure env=%p", closure_env(self));
+        fprintf(stream, " formals=");
         print_repr(closure_formals(self), stream);
-        fprintf(stream, " body=");
-        print_repr(closure_body(self), stream);
+        fprintf(stream, " body=%p", closure_body(self));
         fprintf(stream, ">");
         break;
 
@@ -144,6 +145,14 @@ print_repr(obj_t *self, FILE *stream)
 
     case TP_UNSPECIFIED:
         fprintf(stream, "#<unspecified>");
+        break;
+
+    case TP_ENVIRON:
+        fprintf(stream, "#<environ at %p", self);
+        if (!nullp(self->as_environ.cdr)) {
+            fprintf(stream, " outer=%p", self->as_environ.cdr);
+        }
+        fprintf(stream, ">");
         break;
 
     case TP_UDATA:
@@ -482,7 +491,98 @@ closure_body(obj_t *self)
         fatal_error("not a closure");
 }
 
-// Static functions
+// Accessor macros for environ
+#define ENV_CAR(self) (self->as_environ.car)
+#define ENV_CDR(self) (self->as_environ.cdr)
+
+obj_t *
+environ_wrap(obj_t **frame_ptr, obj_t *outer)
+{
+    obj_t *self = gc_malloc(sizeof(environ_obj_t), TP_ENVIRON);
+#ifndef ALWAYS_COLLECT
+    if (!self) {
+#endif
+        if (gc_is_enabled()) {
+            SGC_ROOT1(frame_ptr, outer);
+            gc_collect(frame_ptr);
+        }
+        self = gc_malloc(sizeof(environ_obj_t), TP_ENVIRON);
+#ifndef ALWAYS_COLLECT
+    }
+#endif
+    ENV_CAR(self) = nil_wrap();
+    ENV_CDR(self) = outer;
+    return self;
+}
+
+obj_t *
+environ_set(obj_t *self, obj_t *key, obj_t *value)
+{
+    obj_t *binding = environ_lookup(self, key, EL_LOOK_OUTER);
+    if (binding) {
+        pair_set_cdr(binding, value);
+    }
+    else {
+        fatal_error("set! -- No such binding");
+    }
+    return binding;
+}
+
+obj_t *
+environ_lookup(obj_t *self, obj_t *key, enum environ_lookup_flag flag)
+{
+    obj_t *lis;  // One particular cons list in the current scanning env self
+    obj_t *binding;
+
+    while (!nullp(self)) {
+        for (lis = ENV_CAR(self); !nullp(lis); lis = pair_cdr(lis)) {
+            binding = pair_car(lis);
+            if (symbol_eq(pair_car(binding), key)) {
+                return binding;
+            }
+        }
+        if (flag == EL_LOOK_OUTER) {
+            self = ENV_CDR(self);
+        }
+        else {
+            break;
+        }
+    }
+    return NULL;
+}
+
+obj_t *
+environ_def(obj_t **frame, obj_t *self, obj_t *key, obj_t *value)
+{
+    obj_t *binding = environ_lookup(self, key, EL_DONT_LOOK_OUTER);
+    if (binding) {
+        pair_set_cdr(binding, value);
+    }
+    else {
+        binding = environ_bind(frame, self, key, value);
+    }
+    return binding;
+}
+
+obj_t *
+environ_bind(obj_t **frame, obj_t *self, obj_t *key, obj_t *value)
+{
+    obj_t *binding;
+
+    if (gc_is_enabled()) {
+        frame[-1] = key;
+        frame[-2] = value;
+    }
+    binding = pair_wrap(frame - 2, key, value);
+
+    if (gc_is_enabled()) {
+        frame[-1] = binding;
+    }
+    ENV_CAR(self) = pair_wrap(frame - 1, binding, ENV_CAR(self));
+    return binding;
+}
+
+// Static utilities
 
 static obj_t *
 default_gc_visitor(obj_t *self)

@@ -15,7 +15,7 @@ static const size_t STACK_SIZE = 1024 * 8;
 static obj_t **stack = NULL;
 static obj_t **sp;
 
-#define MIN_HEAP_SIZE (1024 * 1024 * 1)
+#define MIN_HEAP_SIZE (1024 * 1024 * 2)
 static obj_t *gc_head = NULL;
 static size_t next_collect = MIN_HEAP_SIZE;
 static const double expand_factor = 1.5;

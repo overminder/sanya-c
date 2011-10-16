@@ -25,7 +25,8 @@ typedef uint8_t bool_t;
 #define TP_VECTOR       8
 #define TP_BOOLEAN      9
 #define TP_UNSPECIFIED  10
-#define TP_UDATA        11
+#define TP_ENVIRON      11
+#define TP_UDATA        12
 #define TP_MAX          TP_UDATA
 
 typedef struct obj_t obj_t;
@@ -42,6 +43,8 @@ typedef struct {
     obj_t *car;
     obj_t *cdr;
 } pair_obj_t;
+
+typedef pair_obj_t environ_obj_t;
 
 typedef struct {
     long hash;
@@ -82,6 +85,7 @@ struct obj_t {
         symbol_obj_t as_symbol;
         proc_obj_t as_proc;
         closure_obj_t as_closure;
+        environ_obj_t as_environ;
     };
 };
 
@@ -101,6 +105,7 @@ bool_t symbolp(obj_t *self);
 bool_t fixnump(obj_t *self);
 bool_t procedurep(obj_t *self);
 bool_t closurep(obj_t *self);
+bool_t environp(obj_t *self);
 
 // Simple debug func
 // @see NOT_REACHED
@@ -141,5 +146,17 @@ obj_t *closure_wrap(obj_t **frame_ptr, obj_t *env, obj_t *formals, obj_t *body);
 obj_t *closure_env(obj_t *self);
 obj_t *closure_formals(obj_t *self);
 obj_t *closure_body(obj_t *self);
+
+// Environment
+enum environ_lookup_flag {
+    EL_DONT_LOOK_OUTER,
+    EL_LOOK_OUTER
+};
+
+obj_t *environ_wrap(obj_t **frame_ptr, obj_t *outer);
+obj_t *environ_set(obj_t *self, obj_t *key, obj_t *val);
+obj_t *environ_lookup(obj_t *self, obj_t *key, enum environ_lookup_flag);
+obj_t *environ_def(obj_t **frame, obj_t *self, obj_t *key, obj_t *value);
+obj_t *environ_bind(obj_t **frame, obj_t *self, obj_t *key, obj_t *value);
 
 #endif /* SOBJ_H */

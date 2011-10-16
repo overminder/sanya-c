@@ -26,6 +26,8 @@ static obj_t *lib_integerp(obj_t **frame);
 static obj_t *lib_rtinfo(obj_t **frame);
 static obj_t *lib_eval(obj_t **frame);
 static obj_t *lib_apply(obj_t **frame);
+static obj_t *lib_null_environ(obj_t **frame);
+static obj_t *lib_report_environ(obj_t **frame);
 
 static obj_t *lib_display(obj_t **frame);
 static obj_t *lib_newline(obj_t **frame);
@@ -51,6 +53,8 @@ static procdef_t library[] = {
     {"runtime-info", lib_rtinfo},
     {"eval", lib_eval},
     {"apply", lib_apply},
+    {"scheme-report-environment", lib_report_environ},
+    {"null-environment", lib_null_environ},
 
     // IO
     {"display", lib_display},
@@ -67,9 +71,8 @@ slib_open(obj_t *env)
     procdef_t *iter;
     gc_set_enabled(0);
     for (iter = library; iter->name; ++iter) {
-        binding = pair_wrap(NULL, symbol_intern(NULL, iter->name),
-                            proc_wrap(NULL, iter->func));
-        pair_set_car(env, pair_wrap(NULL, binding, pair_car(env)));
+        environ_bind(NULL, env, symbol_intern(NULL, iter->name),
+                     proc_wrap(NULL, iter->func));
     }
     gc_set_enabled(1);
 }
@@ -237,6 +240,40 @@ static obj_t *
 lib_apply(obj_t **frame)
 {
     fatal_error("apply is never called directly");
+}
+
+static obj_t *
+lib_null_environ(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    obj_t *prelude_env;
+    if (argc == 1) {
+        if (fixnum_unwrap(*frame_ref(frame, 0)) != 5) {
+            fatal_error("only r5rs environ is supported");
+        }
+        prelude_env = frame_env(gc_get_stack_base());
+        return environ_wrap(frame, prelude_env);
+    }
+    else {
+        fatal_error("null-environment require 1 argument");
+    }
+}
+
+static obj_t *
+lib_report_environ(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    obj_t *prelude_env;
+    if (argc == 1) {
+        if (fixnum_unwrap(*frame_ref(frame, 0)) != 5) {
+            fatal_error("only r5rs environ is supported");
+        }
+        prelude_env = frame_env(gc_get_stack_base());
+        return prelude_env;
+    }
+    else {
+        fatal_error("scheme-report-environment require 1 argument");
+    }
 }
 
 static obj_t *

@@ -91,13 +91,13 @@ static procdef_t library[] = {
     {"vector-set!", lib_vector_set},
 
     // Hashtable
-    {"make-hash-table", lib_make_dict},
+    {"make-hash", lib_make_dict},
     {"hash-table?", lib_dictp},
-    {"hash-table-ref", lib_dict_ref},
-    {"hash-table-ref/default", lib_dict_ref_default},
-    {"hash-table-set!", lib_dict_set},
-    {"hash-table-delete!", lib_dict_delete},
-    {"hash-table-exists?", lib_dict_exists},
+    {"hash-ref", lib_dict_ref},
+    {"hash-ref/default", lib_dict_ref_default},
+    {"hash-set!", lib_dict_set},
+    {"hash-delete!", lib_dict_delete},
+    {"hash-exists?", lib_dict_exists},
 
     // Symbol/String
     {"hash", lib_hash},
@@ -406,7 +406,7 @@ lib_make_dict(obj_t **frame)
         return dict_wrap(frame);
     }
     else {
-        fatal_error("make-hash-table require 0 argument");
+        fatal_error("make-hash require 0 argument");
     }
 }
 
@@ -432,14 +432,14 @@ lib_dict_ref(obj_t **frame)
         key = *frame_ref(frame, 0);
         got = dict_lookup(frame, dic, key, DL_DEFAULT);
         if (!got) {
-            fatal_error("hash-table-ref: no such key");
+            fatal_error("hash-ref: no such key");
         }
         else {
             return pair_cdr(got);
         }
     }
     else {
-        fatal_error("hash-table-ref require 2 arguments");
+        fatal_error("hash-ref require 2 arguments");
     }
 }
 
@@ -460,7 +460,7 @@ lib_dict_ref_default(obj_t **frame)
         }
     }
     else {
-        fatal_error("hash-table-ref/default require 3 arguments");
+        fatal_error("hash-ref/default require 3 arguments");
     }
 }
 
@@ -478,7 +478,7 @@ lib_dict_set(obj_t **frame)
         return unspec_wrap();
     }
     else {
-        fatal_error("hash-table-set! require 3 arguments");
+        fatal_error("hash-set! require 3 arguments");
     }
 }
 
@@ -494,7 +494,7 @@ lib_dict_delete(obj_t **frame)
         return unspec_wrap();
     }
     else {
-        fatal_error("hash-table-delete! require 2 arguments");
+        fatal_error("hash-delete! require 2 arguments");
     }
 }
 
@@ -510,7 +510,7 @@ lib_dict_exists(obj_t **frame)
         return boolean_wrap(got != NULL);
     }
     else {
-        fatal_error("hash-table-exists? require 2 arguments");
+        fatal_error("hash-exists? require 2 arguments");
     }
 }
 
@@ -534,53 +534,14 @@ static obj_t *
 lib_hash(obj_t **frame)
 {
     LIB_PROC_HEADER();
-    long hval;
-    long moder_val;
-    obj_t *a, *moder;
-    union {
-        long lval;
-        double dval;
-    } double2long;
+    long hval, moder_val;
+    obj_t *ob, *moder;
 
     if (argc == 2) {
-        a = *frame_ref(frame, 1);
+        ob = *frame_ref(frame, 1);
         moder = *frame_ref(frame, 0);
         moder_val = fixnum_unwrap(moder);
-
-        switch (get_type(a)) {
-        case TP_PAIR:
-            hval = (long)a;
-            break;
-
-        case TP_SYMBOL:
-            hval = symbol_hash(a);
-            break;
-
-        case TP_PROC:
-            hval = (long)a;
-            break;
-
-        case TP_FIXNUM:
-            hval = fixnum_unwrap(a);
-            break;
-
-        case TP_FLONUM:
-            double2long.dval = flonum_unwrap(a);
-            hval = double2long.lval;
-            break;
-
-        case TP_STRING:
-        case TP_CLOSURE:
-        case TP_NIL:
-        case TP_VECTOR:
-        case TP_BOOLEAN:
-        case TP_UNSPECIFIED:
-        case TP_ENVIRON:
-        case TP_UDATA:
-        case TP_EOFOBJ:
-            hval = (long)a;
-            break;
-        }
+        hval = generic_hash(ob);
         return fixnum_wrap(frame, hval % moder_val);
     }
     else {

@@ -5,6 +5,7 @@
 #include "sgc.h"
 
 static bool_t gc_enabled = 1;
+static bool_t gc_verbose = 0;
 static gc_visitor_t visitor_types[256];
 static gc_finalizer_t finalizer_types[256];
 
@@ -60,6 +61,12 @@ gc_is_enabled()
     return gc_enabled;
 }
 
+void
+gc_set_verbose(bool_t p)
+{
+    gc_verbose = p;
+}
+
 obj_t *
 gc_malloc(size_t size, type_t ob_type)
 {
@@ -101,9 +108,6 @@ gc_mark(obj_t *self)
 {
     size_t mark_count = 0;
     while (self && !self->gc_marked) {
-        // Debug
-        //fprintf(stderr, "(MARK! %p) [%ld]\n", self, mark_count);
-
         ++mark_count;
         self->gc_marked = 1;
         self = visitor_types[get_type(self)](self);
@@ -121,14 +125,16 @@ gc_collect(obj_t **frame_ptr)
 
     if (!gc_enabled) {
         // Debug
-        fprintf(stderr, "; heap (%ld/%ld), gc supressed...\n",
-                heap_size, next_collect);
+        if (gc_verbose)
+            fprintf(stderr, "; heap (%ld/%ld), gc supressed...\n",
+                    heap_size, next_collect);
         return 0;
     }
 
     // Debug
-    fprintf(stderr, "; heap (%ld/%ld), gc collecting...\n",
-            heap_size, next_collect);
+    if (gc_verbose)
+        fprintf(stderr, "; heap (%ld/%ld), gc collecting...\n",
+                heap_size, next_collect);
 
     // Firstly mark the stack
     for (iter = frame_ptr; iter < stack + STACK_SIZE; ++iter) {
@@ -180,8 +186,9 @@ gc_collect(obj_t **frame_ptr)
     }
 
     // Debug
-    fprintf(stderr, "; collection result => (%ld/%ld), %lu bytes freed\n",
-            heap_size, next_collect, bytes_freed);
+    if (gc_verbose)
+        fprintf(stderr, "; collection result => (%ld/%ld), %lu bytes freed\n",
+                heap_size, next_collect, bytes_freed);
 
     return bytes_freed;
 }

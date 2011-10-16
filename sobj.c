@@ -89,7 +89,7 @@ get_typename(obj_t *self)
 
 bool_t to_boolean(obj_t *self)
 {
-    if (self == (obj_t *)&w_nil || self == (obj_t *)&w_false)
+    if (self == (obj_t *)&w_false)
         return 0;
     else
         return 1;

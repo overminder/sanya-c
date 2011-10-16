@@ -63,6 +63,11 @@ typedef struct {
     obj_t *body;
 } closure_obj_t;
 
+typedef struct {
+    size_t nb_alloc;
+    obj_t *data[1];
+} vector_obj_t;
+
 // 16-byte for each object...
 #define OB_HEADER \
     obj_t * gc_next; \
@@ -85,6 +90,7 @@ struct obj_t {
         symbol_obj_t as_symbol;
         proc_obj_t as_proc;
         closure_obj_t as_closure;
+        vector_obj_t as_vector;
         environ_obj_t as_environ;
     };
 };
@@ -105,6 +111,7 @@ bool_t symbolp(obj_t *self);
 bool_t fixnump(obj_t *self);
 bool_t procedurep(obj_t *self);
 bool_t closurep(obj_t *self);
+bool_t vectorp(obj_t *self);
 bool_t environp(obj_t *self);
 
 // Simple debug func
@@ -146,6 +153,11 @@ obj_t *closure_wrap(obj_t **frame_ptr, obj_t *env, obj_t *formals, obj_t *body);
 obj_t *closure_env(obj_t *self);
 obj_t *closure_formals(obj_t *self);
 obj_t *closure_body(obj_t *self);
+
+// Vector
+obj_t *vector_wrap(obj_t **frame_ptr, size_t nb_alloc, obj_t *fill);
+obj_t **vector_ref(obj_t *self, long index);
+size_t vector_length(obj_t *self);
 
 // Environment
 enum environ_lookup_flag {

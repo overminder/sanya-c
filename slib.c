@@ -18,10 +18,16 @@ static obj_t *lib_cons(obj_t **frame);
 static obj_t *lib_car(obj_t **frame);
 static obj_t *lib_cdr(obj_t **frame);
 
+static obj_t *lib_make_vector(obj_t **frame);
+static obj_t *lib_vector_length(obj_t **frame);
+static obj_t *lib_vector_ref(obj_t **frame);
+static obj_t *lib_vector_set(obj_t **frame);
+
 static obj_t *lib_nullp(obj_t **frame);
 static obj_t *lib_pairp(obj_t **frame);
 static obj_t *lib_symbolp(obj_t **frame);
 static obj_t *lib_integerp(obj_t **frame);
+static obj_t *lib_vectorp(obj_t **frame);
 
 static obj_t *lib_rtinfo(obj_t **frame);
 static obj_t *lib_eval(obj_t **frame);
@@ -43,11 +49,18 @@ static procdef_t library[] = {
     {"car", lib_car},
     {"cdr", lib_cdr},
 
+    // Vector
+    {"make-vector", lib_make_vector},
+    {"vector-length", lib_vector_length},
+    {"vector-ref", lib_vector_ref},
+    {"vector-set!", lib_vector_set},
+
     // Type predicates
     {"null?", lib_nullp},
     {"pair?", lib_pairp},
     {"symbol?", lib_symbolp},
     {"integer?", lib_integerp},
+    {"vector?", lib_vectorp},
 
     // Runtime Reflection
     {"runtime-info", lib_rtinfo},
@@ -169,6 +182,71 @@ lib_cdr(obj_t **frame)
 }
 
 static obj_t *
+lib_make_vector(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        return vector_wrap(frame,
+                           fixnum_unwrap(*frame_ref(frame, 0)),
+                           unspec_wrap());
+    }
+    else if (argc == 2) {
+        return vector_wrap(frame,
+                           fixnum_unwrap(*frame_ref(frame, 1)),
+                           *frame_ref(frame, 0));
+    }
+    else {
+        fatal_error("make-vector require 1 or 2 arguments");
+    }
+}
+
+static obj_t *
+lib_vector_length(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        return fixnum_wrap(frame, vector_length(*frame_ref(frame, 0)));
+    }
+    else {
+        fatal_error("vector-length require 1 argument");
+    }
+}
+
+static obj_t *
+lib_vector_ref(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    obj_t *vec;
+    long idx;
+    if (argc == 2) {
+        vec = *frame_ref(frame, 1);
+        idx = fixnum_unwrap(*frame_ref(frame, 0));
+        return *vector_ref(vec, idx);
+    }
+    else {
+        fatal_error("vector-ref require 2 arguments");
+    }
+}
+
+static obj_t *
+lib_vector_set(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    obj_t *vec, *val;
+    long idx;
+    if (argc == 3) {
+        vec = *frame_ref(frame, 2);
+        idx = fixnum_unwrap(*frame_ref(frame, 1));
+        val = *frame_ref(frame, 0);
+        *vector_ref(vec, idx) = val;
+        return unspec_wrap();
+    }
+    else {
+        fatal_error("vector-set! require 3 arguments");
+    }
+}
+
+static obj_t *
 lib_nullp(obj_t **frame)
 {
     LIB_PROC_HEADER();
@@ -213,6 +291,18 @@ lib_integerp(obj_t **frame)
     }
     else {
         fatal_error("integer? require 1 argument");
+    }
+}
+
+static obj_t *
+lib_vectorp(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        return boolean_wrap(vectorp(*frame_ref(frame, 0)));
+    }
+    else {
+        fatal_error("vector? require 1 argument");
     }
 }
 

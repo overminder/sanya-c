@@ -16,6 +16,8 @@ static obj_t *default_gc_visitor(obj_t *self);
 static void default_gc_finalizer(obj_t *self);
 static obj_t *pair_gc_visitor(obj_t *self);
 static obj_t *closure_gc_visitor(obj_t *self);
+static obj_t *vector_gc_visitor(obj_t *self);
+static obj_t *environ_gc_visitor(obj_t *self);
 
 void
 sobj_init()
@@ -38,10 +40,10 @@ sobj_init()
     gc_register_type(TP_FLONUM, default_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_CLOSURE, closure_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_NIL, default_gc_visitor, default_gc_finalizer);
-    //gc_register_type(TP_VECTOR, default_gc_visitor, default_gc_finalizer);
+    gc_register_type(TP_VECTOR, vector_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_BOOLEAN, default_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_UNSPECIFIED, default_gc_visitor, default_gc_finalizer);
-    gc_register_type(TP_ENVIRON, pair_gc_visitor, default_gc_finalizer);
+    gc_register_type(TP_ENVIRON, environ_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_UDATA, default_gc_visitor, default_gc_finalizer);
 
     // Symbol table
@@ -136,7 +138,16 @@ print_repr(obj_t *self, FILE *stream)
         break;
 
     case TP_VECTOR:
-        fprintf(stream, "#()");
+        fprintf(stream, "#(");
+        if (vector_length(self) != 0) {
+            size_t i, len;
+            print_repr(*vector_ref(self, 0), stream);
+            for (i = 1, len = vector_length(self); i < len; ++i) {
+                fprintf(stream, " ");
+                print_repr(*vector_ref(self, i), stream);
+            }
+        }
+        fprintf(stream, ")");
         break;
 
     case TP_BOOLEAN:
@@ -200,6 +211,12 @@ closurep(obj_t *self)
     return get_type(self) == TP_CLOSURE;
 }
 
+bool_t
+vectorp(obj_t *self)
+{
+    return get_type(self) == TP_VECTOR;
+}
+
 void
 fatal_error(const char *msg)
 {
@@ -238,6 +255,8 @@ fixnum_wrap(obj_t **frame_ptr, long ival)
 #endif
         gc_collect(frame_ptr);
         self = gc_malloc(sizeof(fixnum_obj_t), TP_FIXNUM);
+        if (!self)
+            fatal_error("out of memory");
 #ifndef ALWAYS_COLLECT
     }
 #endif
@@ -264,6 +283,8 @@ flonum_wrap(obj_t **frame_ptr, double dval)
 #endif
         gc_collect(frame_ptr);
         self = gc_malloc(sizeof(flonum_obj_t), TP_FLONUM);
+        if (!self)
+            fatal_error("out of memory");
 #ifndef ALWAYS_COLLECT
     }
 #endif
@@ -290,6 +311,8 @@ pair_wrap(obj_t **frame_ptr, obj_t *car, obj_t *cdr)
             gc_collect(frame_ptr);
         }
         self = gc_malloc(sizeof(pair_obj_t), TP_PAIR);
+        if (!self)
+            fatal_error("out of memory");
 #ifndef ALWAYS_COLLECT
     }
 #endif
@@ -345,6 +368,8 @@ symbol_wrap(obj_t **frame_ptr, const char *sval)
 #endif
         gc_collect(frame_ptr);
         self = gc_malloc(sizeof(symbol_obj_t) + slen, TP_SYMBOL);
+        if (!self)
+            fatal_error("out of memory");
 #ifndef ALWAYS_COLLECT
     }
 #endif
@@ -427,6 +452,8 @@ proc_wrap(obj_t **frame_ptr, sobj_funcptr_t func)
 #endif
         gc_collect(frame_ptr);
         self = gc_malloc(sizeof(proc_obj_t), TP_PROC);
+        if (!self)
+            fatal_error("out of memory");
 #ifndef ALWAYS_COLLECT
     }
 #endif
@@ -455,6 +482,8 @@ closure_wrap(obj_t **frame_ptr, obj_t *env, obj_t *formals, obj_t *body)
             gc_collect(frame_ptr);
         }
         self = gc_malloc(sizeof(closure_obj_t), TP_CLOSURE);
+        if (!self)
+            fatal_error("out of memory");
 #ifndef ALWAYS_COLLECT
     }
 #endif
@@ -491,6 +520,43 @@ closure_body(obj_t *self)
         fatal_error("not a closure");
 }
 
+obj_t *
+vector_wrap(obj_t **frame_ptr, size_t nb_alloc, obj_t *fill)
+{
+    obj_t *self;
+    size_t i;
+    self = gc_malloc(sizeof(vector_obj_t) +
+                     sizeof(obj_t *) * nb_alloc, TP_VECTOR);
+#ifndef ALWAYS_COLLECT
+    if (!self) {
+#endif
+        gc_collect(frame_ptr);
+        self = gc_malloc(sizeof(vector_obj_t) +
+                         sizeof(obj_t *) * nb_alloc, TP_VECTOR);
+        if (!self)
+            fatal_error("out of memory");
+#ifndef ALWAYS_COLLECT
+    }
+#endif
+    self->as_vector.nb_alloc = nb_alloc;
+    for (i = 0; i < nb_alloc; ++i) {
+        self->as_vector.data[i] = fill;
+    }
+    return self;
+}
+
+obj_t **
+vector_ref(obj_t *self, long index)
+{
+    return self->as_vector.data + index;
+}
+
+size_t
+vector_length(obj_t *self)
+{
+    return self->as_vector.nb_alloc;
+}
+
 // Accessor macros for environ
 #define ENV_CAR(self) (self->as_environ.car)
 #define ENV_CDR(self) (self->as_environ.cdr)
@@ -507,6 +573,8 @@ environ_wrap(obj_t **frame_ptr, obj_t *outer)
             gc_collect(frame_ptr);
         }
         self = gc_malloc(sizeof(environ_obj_t), TP_ENVIRON);
+        if (!self)
+            fatal_error("out of memory");
 #ifndef ALWAYS_COLLECT
     }
 #endif
@@ -611,3 +679,19 @@ closure_gc_visitor(obj_t *self)
     return closure_body(self);
 }
 
+static obj_t *
+vector_gc_visitor(obj_t *self)
+{
+    size_t i, len;
+    for (i = 0, len = vector_length(self); i < len; ++i) {
+        gc_mark(*vector_ref(self, i));
+    }
+    return NULL;
+}
+
+static obj_t *
+environ_gc_visitor(obj_t *self)
+{
+    gc_mark(ENV_CAR(self));
+    return ENV_CDR(self);
+}

@@ -6,12 +6,17 @@
 
 extern void sparse_init();
 
+             // Language constructs
 static obj_t *symbol_if,
              *symbol_lambda,
              *symbol_define,
              *symbol_set,
              *symbol_begin,
-             *symbol_quote;
+             *symbol_quote,
+
+             // Builtin macros
+             *symbol_let_syntax,
+             *symbol_ellipsis;
 
 static obj_t *eval_symbol(obj_t **frame);
 static obj_t *apply_procedure(obj_t **frame);
@@ -39,6 +44,9 @@ seval_init()
     symbol_set = symbol_intern(frame, "set!");
     symbol_begin = symbol_intern(frame, "begin");
     symbol_quote = symbol_intern(frame, "quote");
+
+    symbol_let_syntax = symbol_intern(frame, "let-syntax");
+    symbol_ellipsis = symbol_intern(frame, "...");
 
     // The very first frame.
     frame = frame_extend(frame, 0, FR_CLEAR_SLOTS);

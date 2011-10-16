@@ -28,7 +28,8 @@ typedef uint8_t bool_t;
 #define TP_UNSPECIFIED  11
 #define TP_ENVIRON      12
 #define TP_EOFOBJ       13
-#define TP_UDATA        14
+#define TP_DICT         14
+#define TP_UDATA        15
 #define TP_MAX          TP_UDATA
 
 typedef struct obj_t obj_t;
@@ -51,8 +52,6 @@ typedef struct {
     obj_t *cdr;
 } pair_obj_t;
 
-typedef pair_obj_t environ_obj_t;
-
 typedef struct {
     long hash;
     char val[1];
@@ -74,6 +73,14 @@ typedef struct {
     size_t nb_alloc;
     obj_t *data[1];
 } vector_obj_t;
+
+typedef pair_obj_t environ_obj_t;
+
+typedef struct {
+    uint32_t nb_items;
+    uint32_t hash_mask;
+    obj_t *vec;
+} dict_obj_t;
 
 // 16-byte for each object...
 #define OB_HEADER \
@@ -100,6 +107,7 @@ struct obj_t {
         closure_obj_t as_closure;
         vector_obj_t as_vector;
         environ_obj_t as_environ;
+        dict_obj_t as_dict;
     };
 };
 
@@ -138,15 +146,15 @@ obj_t *unspec_wrap();
 obj_t *eofobj_wrap();
 
 // Fixnum
-obj_t *fixnum_wrap(obj_t **frame_ptr, long ival);
+obj_t *fixnum_wrap(obj_t **frame, long ival);
 long fixnum_unwrap(obj_t *self);
 
-// Flonum
-obj_t *flonum_wrap(obj_t **frame_ptr, double dval);
+// Flonum, note that value of fixnum will also be accessable from flonum_uw
+obj_t *flonum_wrap(obj_t **frame, double dval);
 double flonum_unwrap(obj_t *self);
 
 // Pair
-obj_t *pair_wrap(obj_t **frame_ptr, obj_t *car, obj_t *cdr);
+obj_t *pair_wrap(obj_t **frame, obj_t *car, obj_t *cdr);
 obj_t *pair_car(obj_t *self);
 obj_t *pair_cdr(obj_t *self);
 void pair_set_car(obj_t *self, obj_t *car);
@@ -155,27 +163,27 @@ void pair_set_cdr(obj_t *self, obj_t *cdr);
 // Symbol
 const char *symbol_unwrap(obj_t *self);
 long symbol_hash(obj_t *self);
-obj_t *symbol_intern(obj_t **frame_ptr, const char *sval);
+obj_t *symbol_intern(obj_t **frame, const char *sval);
 bool_t symbol_eq(obj_t *self, obj_t *other);
 
 // String
-obj_t *string_wrap(obj_t **frame_ptr, const char *sval, size_t len);
+obj_t *string_wrap(obj_t **frame, const char *sval, size_t len);
 const char *string_unwrap(obj_t *self);
 size_t string_length(obj_t *self);
 bool_t string_eq(obj_t *self, obj_t *other);
 
 // Proc
-obj_t *proc_wrap(obj_t **frame_ptr, sobj_funcptr_t func);
+obj_t *proc_wrap(obj_t **frame, sobj_funcptr_t func);
 sobj_funcptr_t proc_unwrap(obj_t *self);
 
 // Closure
-obj_t *closure_wrap(obj_t **frame_ptr, obj_t *env, obj_t *formals, obj_t *body);
+obj_t *closure_wrap(obj_t **frame, obj_t *env, obj_t *formals, obj_t *body);
 obj_t *closure_env(obj_t *self);
 obj_t *closure_formals(obj_t *self);
 obj_t *closure_body(obj_t *self);
 
 // Vector
-obj_t *vector_wrap(obj_t **frame_ptr, size_t nb_alloc, obj_t *fill);
+obj_t *vector_wrap(obj_t **frame, size_t nb_alloc, obj_t *fill);
 obj_t **vector_ref(obj_t *self, long index);
 size_t vector_length(obj_t *self);
 
@@ -188,10 +196,24 @@ enum environ_lookup_flag {
 //   Currently the environment is implemented as a list.
 //   e.g., (env . outer-env)
 //   Where env is ((key . value) (key2 . value2) ...)
-obj_t *environ_wrap(obj_t **frame_ptr, obj_t *outer);
+obj_t *environ_wrap(obj_t **frame, obj_t *outer);
 obj_t *environ_set(obj_t *self, obj_t *key, obj_t *val);
 obj_t *environ_lookup(obj_t *self, obj_t *key, enum environ_lookup_flag);
 obj_t *environ_def(obj_t **frame, obj_t *self, obj_t *key, obj_t *value);
 obj_t *environ_bind(obj_t **frame, obj_t *self, obj_t *key, obj_t *value);
+
+enum dict_lookup_flag {
+    DL_DEFAULT = 0,
+    DL_CREATE_ON_ABSENT = 1,
+    DL_POP_IF_FOUND = 2
+};
+
+// By default the initial size is 8.
+obj_t *dict_wrap(obj_t **frame);
+bool_t dictp(obj_t *self);
+size_t dict_size(obj_t *self);
+// If not found, it will return NULL.
+obj_t *dict_lookup(obj_t **frame, obj_t *self,
+                   obj_t *key, enum dict_lookup_flag);
 
 #endif /* SOBJ_H */

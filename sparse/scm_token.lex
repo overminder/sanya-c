@@ -36,13 +36,18 @@
     return T_EXPR;
 }
 
+-?[0-9]*\.[0-9]+ {
+    yylval.obj_val = make_flonum(yytext);
+    return T_EXPR;
+}
+
 \"(\\\"|[^"\n\r])*\" {
     // Escaping seq is resolved in make_string
     yylval.obj_val = make_string(yytext + 1, yyleng - 2);
     return T_EXPR;
 }
 
-[\+\-\*\^\?a-zA-Z!<=>\_~/$%&:][\+\-\*\^\?a-zA-Z0-9!<=>\_~/$%&:]* {
+[\.\+\-\*\^\?a-zA-Z!<=>\_~/$%&:][\.\+\-\*\^\?a-zA-Z0-9!<=>\_~/$%&:]* {
     yylval.obj_val = make_symbol(yytext);
     return T_EXPR;
 }

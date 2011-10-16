@@ -45,6 +45,12 @@ make_fixnum(const char *s)
 }
 
 static obj_t *
+make_flonum(const char *s)
+{
+    return flonum_wrap(NULL, atof(s));
+}
+
+static obj_t *
 make_pair(obj_t *car, obj_t *cdr)
 {
     return pair_wrap(NULL, car, cdr);

@@ -26,9 +26,18 @@ static obj_t *lib_set_car(obj_t **frame);
 static obj_t *lib_set_cdr(obj_t **frame);
 
 static obj_t *lib_make_vector(obj_t **frame);
+static obj_t *lib_vectorp(obj_t **frame);
 static obj_t *lib_vector_length(obj_t **frame);
 static obj_t *lib_vector_ref(obj_t **frame);
 static obj_t *lib_vector_set(obj_t **frame);
+
+static obj_t *lib_make_dict(obj_t **frame);
+static obj_t *lib_dictp(obj_t **frame);
+static obj_t *lib_dict_ref(obj_t **frame);
+static obj_t *lib_dict_ref_default(obj_t **frame);
+static obj_t *lib_dict_set(obj_t **frame);
+static obj_t *lib_dict_delete(obj_t **frame);
+static obj_t *lib_dict_exists(obj_t **frame);
 
 static obj_t *lib_hash(obj_t **frame);
 static obj_t *lib_symbol2string(obj_t **frame);
@@ -39,7 +48,6 @@ static obj_t *lib_nullp(obj_t **frame);
 static obj_t *lib_pairp(obj_t **frame);
 static obj_t *lib_symbolp(obj_t **frame);
 static obj_t *lib_integerp(obj_t **frame);
-static obj_t *lib_vectorp(obj_t **frame);
 static obj_t *lib_booleanp(obj_t **frame);
 static obj_t *lib_unspecp(obj_t **frame);
 static obj_t *lib_eofobjp(obj_t **frame);
@@ -62,12 +70,14 @@ static obj_t *lib_newline(obj_t **frame);
 
 static procdef_t library[] = {
     // Arith
+    {"integer?", lib_integerp},
     {"+", lib_add},
     {"-", lib_minus},
     {"<", lib_lessthan},
 
     // Pair
     {"cons", lib_cons},
+    {"pair?", lib_pairp},
     {"car", lib_car},
     {"cdr", lib_cdr},
     {"set-car!", lib_set_car},
@@ -75,22 +85,29 @@ static procdef_t library[] = {
 
     // Vector
     {"make-vector", lib_make_vector},
+    {"vector?", lib_vectorp},
     {"vector-length", lib_vector_length},
     {"vector-ref", lib_vector_ref},
     {"vector-set!", lib_vector_set},
 
+    // Hashtable
+    {"make-hash-table", lib_make_dict},
+    {"hash-table?", lib_dictp},
+    {"hash-table-ref", lib_dict_ref},
+    {"hash-table-ref/default", lib_dict_ref_default},
+    {"hash-table-set!", lib_dict_set},
+    {"hash-table-delete!", lib_dict_delete},
+    {"hash-table-exists?", lib_dict_exists},
+
     // Symbol/String
     {"hash", lib_hash},
+    {"symbol?", lib_symbolp},
     {"symbol->string", lib_symbol2string},
     {"string->symbol", lib_string2symbol},
     {"gensym", lib_gensym},
 
-    // Type predicates
+    // Primitive type predicates
     {"null?", lib_nullp},
-    {"pair?", lib_pairp},
-    {"symbol?", lib_symbolp},
-    {"integer?", lib_integerp},
-    {"vector?", lib_vectorp},
     {"boolean?", lib_booleanp},
     {"eof?", lib_eofobjp},
     {"unspecified?", lib_unspecp},
@@ -191,32 +208,52 @@ static obj_t *
 lib_add(obj_t **frame)
 {
     LIB_PROC_HEADER();
-    long retval = 0;
+    obj_t *arg;
+    double retval = 0;
+    bool_t is_int = 1;
 
     for (i = argc - 1; i >= 0; --i) {
-        retval += fixnum_unwrap(*frame_ref(frame, i));
+        arg = *frame_ref(frame, i);
+        if (!fixnump(arg))
+            is_int = 0;
+        retval += flonum_unwrap(arg);
     }
-    return fixnum_wrap(frame, retval);
+    return is_int ? fixnum_wrap(frame, retval) : flonum_wrap(frame, retval);
 }
 
 static obj_t *
 lib_minus(obj_t **frame)
 {
     LIB_PROC_HEADER();
-    long retval = 0;
+    obj_t *arg;
+    double retval = 0;
+    bool_t is_int = 1;
 
     if (argc == 0) {
         fatal_error("illegal (-)");
     }
-    else if (argc == 1) {
-        return fixnum_wrap(frame, -fixnum_unwrap(*frame_ref(frame, 0)));
+
+    arg = *frame_ref(frame, argc - 1);
+    if (!fixnump(arg))
+        is_int = 0;
+    retval = flonum_unwrap(arg);
+
+    if (argc == 1) {
+        if (is_int)
+            return fixnum_wrap(frame, -retval);
+        else
+            return flonum_wrap(frame, -retval);
     }
     else {
-        retval = fixnum_unwrap(*frame_ref(frame, argc - 1));
+        // Argc >= 2
         for (i = argc - 2; i >= 0; --i) {
-            retval -= fixnum_unwrap(*frame_ref(frame, i));
+            arg = *frame_ref(frame, i);
+            if (!fixnump(arg))
+                is_int = 0;
+            retval -= flonum_unwrap(arg);
         }
-        return fixnum_wrap(frame, retval);
+        return is_int ? fixnum_wrap(frame, retval) :
+                        flonum_wrap(frame, retval);
     }
 }
 
@@ -358,6 +395,122 @@ lib_vector_set(obj_t **frame)
     }
     else {
         fatal_error("vector-set! require 3 arguments");
+    }
+}
+
+static obj_t *
+lib_make_dict(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    if (argc == 0) {
+        return dict_wrap(frame);
+    }
+    else {
+        fatal_error("make-hash-table require 0 argument");
+    }
+}
+
+static obj_t *
+lib_dictp(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        return boolean_wrap(dictp(*frame_ref(frame, 0)));
+    }
+    else {
+        fatal_error("hash-table? require 1 argument");
+    }
+}
+
+static obj_t *
+lib_dict_ref(obj_t **frame)
+{
+    obj_t *dic, *key, *got;
+    LIB_PROC_HEADER();
+    if (argc == 2) {
+        dic = *frame_ref(frame, 1);
+        key = *frame_ref(frame, 0);
+        got = dict_lookup(frame, dic, key, DL_DEFAULT);
+        if (!got) {
+            fatal_error("hash-table-ref: no such key");
+        }
+        else {
+            return pair_cdr(got);
+        }
+    }
+    else {
+        fatal_error("hash-table-ref require 2 arguments");
+    }
+}
+
+static obj_t *
+lib_dict_ref_default(obj_t **frame)
+{
+    obj_t *dic, *key, *got;
+    LIB_PROC_HEADER();
+    if (argc == 3) {
+        dic = *frame_ref(frame, 2);
+        key = *frame_ref(frame, 1);
+        got = dict_lookup(frame, dic, key, DL_DEFAULT);
+        if (!got) {
+            return *frame_ref(frame, 0);  // The default value
+        }
+        else {
+            return pair_cdr(got);
+        }
+    }
+    else {
+        fatal_error("hash-table-ref/default require 3 arguments");
+    }
+}
+
+static obj_t *
+lib_dict_set(obj_t **frame)
+{
+    obj_t *dic, *key, *val, *entry;
+    LIB_PROC_HEADER();
+    if (argc == 3) {
+        dic = *frame_ref(frame, 2);
+        key = *frame_ref(frame, 1);
+        val = *frame_ref(frame, 0);
+        entry = dict_lookup(frame, dic, key, DL_CREATE_ON_ABSENT);
+        pair_set_cdr(entry, val);
+        return unspec_wrap();
+    }
+    else {
+        fatal_error("hash-table-set! require 3 arguments");
+    }
+}
+
+static obj_t *
+lib_dict_delete(obj_t **frame)
+{
+    obj_t *dic, *key, *got;
+    LIB_PROC_HEADER();
+    if (argc == 2) {
+        dic = *frame_ref(frame, 1);
+        key = *frame_ref(frame, 0);
+        got = dict_lookup(frame, dic, key, DL_POP_IF_FOUND);
+        return unspec_wrap();
+    }
+    else {
+        fatal_error("hash-table-delete! require 2 arguments");
+    }
+}
+
+static obj_t *
+lib_dict_exists(obj_t **frame)
+{
+    obj_t *dic, *key, *got;
+    LIB_PROC_HEADER();
+    if (argc == 2) {
+        dic = *frame_ref(frame, 1);
+        key = *frame_ref(frame, 0);
+        got = dict_lookup(frame, dic, key, DL_DEFAULT);
+        return boolean_wrap(got != NULL);
+    }
+    else {
+        fatal_error("hash-table-exists? require 2 arguments");
     }
 }
 

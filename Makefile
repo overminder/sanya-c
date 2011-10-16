@@ -1,5 +1,5 @@
 # automatically generated from .pymakegen_v2.conf
-# timestamp: 1318742189.57952
+# timestamp: 1318765434.840774
 # handler_namespaces: ['root', handler.flexbison, handler.gcc]
 
 flexbison_BISON=bison
@@ -21,7 +21,7 @@ $(gcc_TARGET) : sobj.o main.o seval.o sgc.o slib.o  \
 	    sparse/scm_token.flex.o sparse/scm_syntax.bison.o -o  \
 	    $(gcc_TARGET)
 
-main.o : main.c sgc.h sobj.h rl.h seval.h sobj.h
+main.o : main.c sgc.h sobj.h slib.h sobj.h seval.h sobj.h
 	$(gcc_CC) $(gcc_CFLAGS) main.c $(gcc_INCLUDES) -o main.o
 
 seval.o : seval.c sgc.h sobj.h seval_impl.h slib.h sobj.h  \
@@ -31,8 +31,8 @@ seval.o : seval.c sgc.h sobj.h seval_impl.h slib.h sobj.h  \
 sgc.o : sgc.c sgc.h sobj.h
 	$(gcc_CC) $(gcc_CFLAGS) sgc.c $(gcc_INCLUDES) -o sgc.o
 
-slib.o : slib.c sgc.h sobj.h seval_impl.h seval.h sobj.h slib.h \
-	     sobj.h
+slib.o : slib.c sgc.h sobj.h seval_impl.h rl.h seval.h sobj.h  \
+	    slib.h sobj.h
 	$(gcc_CC) $(gcc_CFLAGS) slib.c $(gcc_INCLUDES) -o slib.o
 
 sobj.o : sobj.c sgc.h sobj.h sobj.h

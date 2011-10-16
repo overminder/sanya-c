@@ -4,6 +4,7 @@
 #include "sgc.h"
 #include "sobj.h"
 
+// Uncomment this when testing collector.
 //#define ALWAYS_COLLECT
 
 static header_obj_t w_nil;
@@ -19,7 +20,9 @@ static obj_t *pair_gc_visitor(obj_t *self);
 static obj_t *closure_gc_visitor(obj_t *self);
 static obj_t *vector_gc_visitor(obj_t *self);
 static obj_t *environ_gc_visitor(obj_t *self);
+static obj_t *dict_gc_visitor(obj_t *self);
 
+// Initialize gc visitors and finalizers for each primitive type.
 void
 sobj_init()
 {
@@ -48,6 +51,7 @@ sobj_init()
     gc_register_type(TP_UNSPECIFIED, default_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_ENVIRON, environ_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_EOFOBJ, default_gc_visitor, default_gc_finalizer);
+    gc_register_type(TP_DICT, dict_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_UDATA, default_gc_visitor, default_gc_finalizer);
 
     // Symbol table
@@ -126,9 +130,14 @@ print_repr(obj_t *self, FILE *stream)
         fprintf(stream, "%ld", fixnum_unwrap(self));
         break;
 
-    case TP_FLONUM:
-        fprintf(stream, "%g", flonum_unwrap(self));
+    case TP_FLONUM: {
+        // So as to print out a .0 everytime.
+        double dval = flonum_unwrap(self);
+        fprintf(stream, "%g", dval);
+        if (dval == (long)dval)
+            fprintf(stream, ".0");
         break;
+    }
 
     case TP_STRING:
         fwrite(string_unwrap(self), 1, string_length(self), stream);
@@ -175,6 +184,11 @@ print_repr(obj_t *self, FILE *stream)
         fprintf(stream, ">");
         break;
 
+    case TP_DICT:
+        fprintf(stream, "#<hash-table (%d/%ld)>",
+                self->as_dict.nb_items, vector_length(self->as_dict.vec));
+        break;
+
     case TP_UDATA:
         fprintf(stream, "#<user-data>");
         break;
@@ -191,7 +205,7 @@ print_repr(obj_t *self, FILE *stream)
 bool_t
 nullp(obj_t *self)
 {
-    return self == nil_wrap();
+    return get_type(self) == TP_NIL;
 }
 
 bool_t
@@ -302,13 +316,13 @@ eofobj_wrap()
 
 // Fixnum
 obj_t *
-fixnum_wrap(obj_t **frame_ptr, long ival)
+fixnum_wrap(obj_t **frame, long ival)
 {
     obj_t *self = gc_malloc(sizeof(fixnum_obj_t), TP_FIXNUM);
 #ifndef ALWAYS_COLLECT
     if (!self) {
 #endif
-        gc_collect(frame_ptr);
+        gc_collect(frame);
         self = gc_malloc(sizeof(fixnum_obj_t), TP_FIXNUM);
         if (!self)
             fatal_error("out of memory");
@@ -330,13 +344,13 @@ fixnum_unwrap(obj_t *self)
 
 // Flonum
 obj_t *
-flonum_wrap(obj_t **frame_ptr, double dval)
+flonum_wrap(obj_t **frame, double dval)
 {
     obj_t *self = gc_malloc(sizeof(flonum_obj_t), TP_FLONUM);
 #ifndef ALWAYS_COLLECT
     if (!self) {
 #endif
-        gc_collect(frame_ptr);
+        gc_collect(frame);
         self = gc_malloc(sizeof(flonum_obj_t), TP_FLONUM);
         if (!self)
             fatal_error("out of memory");
@@ -350,20 +364,25 @@ flonum_wrap(obj_t **frame_ptr, double dval)
 double
 flonum_unwrap(obj_t *self)
 {
-    return self->as_flonum.val;
+    if (flonump(self))
+        return self->as_flonum.val;
+    else if (fixnump(self))
+        return fixnum_unwrap(self);
+    else
+        fatal_error("not a number");
 }
 
 // Pair
 obj_t *
-pair_wrap(obj_t **frame_ptr, obj_t *car, obj_t *cdr)
+pair_wrap(obj_t **frame, obj_t *car, obj_t *cdr)
 {
     obj_t *self = gc_malloc(sizeof(pair_obj_t), TP_PAIR);
 #ifndef ALWAYS_COLLECT
     if (!self) {
 #endif
         if (gc_is_enabled()) {
-            SGC_ROOT2(frame_ptr, car, cdr);
-            gc_collect(frame_ptr);
+            SGC_ROOT2(frame, car, cdr);
+            gc_collect(frame);
         }
         self = gc_malloc(sizeof(pair_obj_t), TP_PAIR);
         if (!self)
@@ -414,14 +433,14 @@ pair_set_cdr(obj_t *self, obj_t *cdr)
 
 // Symbol
 static obj_t *
-symbol_wrap(obj_t **frame_ptr, const char *sval)
+symbol_wrap(obj_t **frame, const char *sval)
 {
     size_t slen = strlen(sval);
     obj_t *self = gc_malloc(sizeof(symbol_obj_t) + slen, TP_SYMBOL);
 #ifndef ALWAYS_COLLECT
     if (!self) {
 #endif
-        gc_collect(frame_ptr);
+        gc_collect(frame);
         self = gc_malloc(sizeof(symbol_obj_t) + slen, TP_SYMBOL);
         if (!self)
             fatal_error("out of memory");
@@ -469,7 +488,7 @@ symbol_hash(obj_t *self)
 }
 
 obj_t *
-symbol_intern(obj_t **frame_ptr, const char *sval)
+symbol_intern(obj_t **frame, const char *sval)
 {
     long hash;
     obj_t *item, *symb, *symb_tab_ptr = pair_car(symbol_table);
@@ -482,8 +501,8 @@ symbol_intern(obj_t **frame_ptr, const char *sval)
             return symb;
         }
     }
-    symb = symbol_wrap(frame_ptr, sval);
-    symb_tab_ptr = pair_wrap(frame_ptr, symb, symb_tab_ptr);
+    symb = symbol_wrap(frame, sval);
+    symb_tab_ptr = pair_wrap(frame, symb, symb_tab_ptr);
     pair_set_car(symbol_table, symb_tab_ptr);
     return symb;
 }
@@ -498,13 +517,13 @@ symbol_eq(obj_t *self, obj_t *other)
 }
 
 obj_t *
-string_wrap(obj_t **frame_ptr, const char *sval, size_t len)
+string_wrap(obj_t **frame, const char *sval, size_t len)
 {
     obj_t *self = gc_malloc(sizeof(string_obj_t) + len, TP_STRING);
 #ifndef ALWAYS_COLLECT
     if (!self) {
 #endif
-        gc_collect(frame_ptr);
+        gc_collect(frame);
         self = gc_malloc(sizeof(string_obj_t) + len, TP_STRING);
         if (!self)
             fatal_error("out of memory");
@@ -546,13 +565,13 @@ string_eq(obj_t *self, obj_t *other)
 
 // Proc
 obj_t *
-proc_wrap(obj_t **frame_ptr, sobj_funcptr_t func)
+proc_wrap(obj_t **frame, sobj_funcptr_t func)
 {
     obj_t *self = gc_malloc(sizeof(proc_obj_t), TP_PROC);
 #ifndef ALWAYS_COLLECT
     if (!self) {
 #endif
-        gc_collect(frame_ptr);
+        gc_collect(frame);
         self = gc_malloc(sizeof(proc_obj_t), TP_PROC);
         if (!self)
             fatal_error("out of memory");
@@ -573,15 +592,15 @@ proc_unwrap(obj_t *self)
 }
 
 obj_t *
-closure_wrap(obj_t **frame_ptr, obj_t *env, obj_t *formals, obj_t *body)
+closure_wrap(obj_t **frame, obj_t *env, obj_t *formals, obj_t *body)
 {
     obj_t *self = gc_malloc(sizeof(closure_obj_t), TP_CLOSURE);
 #ifndef ALWAYS_COLLECT
     if (!self) {
 #endif
         if (gc_is_enabled()) {
-            SGC_ROOT3(frame_ptr, env, formals, body);
-            gc_collect(frame_ptr);
+            SGC_ROOT3(frame, env, formals, body);
+            gc_collect(frame);
         }
         self = gc_malloc(sizeof(closure_obj_t), TP_CLOSURE);
         if (!self)
@@ -623,7 +642,7 @@ closure_body(obj_t *self)
 }
 
 obj_t *
-vector_wrap(obj_t **frame_ptr, size_t nb_alloc, obj_t *fill)
+vector_wrap(obj_t **frame, size_t nb_alloc, obj_t *fill)
 {
     obj_t *self;
     size_t i;
@@ -632,7 +651,7 @@ vector_wrap(obj_t **frame_ptr, size_t nb_alloc, obj_t *fill)
 #ifndef ALWAYS_COLLECT
     if (!self) {
 #endif
-        gc_collect(frame_ptr);
+        gc_collect(frame);
         self = gc_malloc(sizeof(vector_obj_t) +
                          sizeof(obj_t *) * nb_alloc, TP_VECTOR);
         if (!self)
@@ -664,15 +683,15 @@ vector_length(obj_t *self)
 #define ENV_CDR(self) (self->as_environ.cdr)
 
 obj_t *
-environ_wrap(obj_t **frame_ptr, obj_t *outer)
+environ_wrap(obj_t **frame, obj_t *outer)
 {
     obj_t *self = gc_malloc(sizeof(environ_obj_t), TP_ENVIRON);
 #ifndef ALWAYS_COLLECT
     if (!self) {
 #endif
         if (gc_is_enabled()) {
-            SGC_ROOT1(frame_ptr, outer);
-            gc_collect(frame_ptr);
+            SGC_ROOT1(frame, outer);
+            gc_collect(frame);
         }
         self = gc_malloc(sizeof(environ_obj_t), TP_ENVIRON);
         if (!self)
@@ -752,6 +771,151 @@ environ_bind(obj_t **frame, obj_t *self, obj_t *key, obj_t *value)
     return binding;
 }
 
+#define DICT_INIT_SIZE 8
+
+obj_t *
+dict_wrap(obj_t **frame)
+{
+    obj_t *self = gc_malloc(sizeof(dict_obj_t), TP_DICT);
+#ifndef ALWAYS_COLLECT
+    if (!self) {
+#endif
+        gc_collect(frame);
+        self = gc_malloc(sizeof(dict_obj_t), TP_DICT);
+        if (!self)
+            fatal_error("out of memory");
+#ifndef ALWAYS_COLLECT
+    }
+#endif
+    SGC_ROOT1(frame, self);
+    self->as_dict.nb_items = 0;
+    self->as_dict.hash_mask = DICT_INIT_SIZE - 1;
+    self->as_dict.vec = vector_wrap(frame, DICT_INIT_SIZE, nil_wrap());
+    return self;
+}
+
+bool_t
+dictp(obj_t *self)
+{
+    return get_type(self) == TP_DICT;
+}
+
+size_t
+dict_size(obj_t *self)
+{
+    return self->as_dict.nb_items;
+}
+
+static void
+dict_rehash(obj_t **frame, obj_t *self, size_t target_size)
+{
+    // Firstly create a new dict
+    obj_t *ndict = gc_malloc(sizeof(dict_obj_t), TP_DICT);
+#ifndef ALWAYS_COLLECT
+    if (!ndict) {
+#endif
+        if (gc_is_enabled()) {
+            SGC_ROOT1(frame, ndict);
+            gc_collect(frame);
+        }
+        ndict = gc_malloc(sizeof(dict_obj_t), TP_DICT);
+        if (!ndict)
+            fatal_error("out of memory");
+#ifndef ALWAYS_COLLECT
+    }
+#endif
+    SGC_ROOT2(frame, self, ndict);
+    ndict->as_dict.vec = vector_wrap(frame, target_size, nil_wrap());
+    // Other fields are not important
+
+    // Then rehash each item in the self.
+    obj_t *self_vec, *new_vec;
+    size_t vec_i, vec_len, hashval, hash_mask, new_bucket;
+    obj_t *entry_list, *entry, *key;
+    obj_t **new_entry_head;
+
+    hash_mask = target_size - 1;
+    self_vec = self->as_dict.vec;
+    new_vec = ndict->as_dict.vec;
+    for (vec_i = 0, vec_len = vector_length(self_vec);
+            vec_i < vec_len; ++vec_i) {
+        for (entry_list = *vector_ref(self_vec, vec_i);
+                !nullp(entry_list); entry_list = pair_cdr(entry_list)) {
+            entry = pair_car(entry_list);
+            key = pair_car(entry);
+
+            hashval = symbol_hash(key);
+            new_bucket = hashval & hash_mask;
+
+            new_entry_head = vector_ref(new_vec, new_bucket);
+            *new_entry_head = pair_wrap(frame, entry, *new_entry_head);
+        }
+    }
+    self->as_dict.vec = new_vec;
+    self->as_dict.hash_mask = hash_mask;
+}
+
+obj_t *
+dict_lookup(obj_t **frame, obj_t *self, obj_t *key, enum dict_lookup_flag fl)
+{
+    obj_t **entry_ref;
+    obj_t *entry_list, *entry, *prev_entry_list;
+    size_t hashval, index;
+
+    hashval = symbol_hash(key);
+    index = hashval & self->as_dict.hash_mask;
+    entry_ref = vector_ref(self->as_dict.vec, index);
+
+    prev_entry_list = NULL;
+    entry_list = *entry_ref;
+    while (!nullp(entry_list)) {
+        entry = pair_car(entry_list);
+        if (pair_car(entry) == key) {
+            // Since we intern symbols...
+            goto found_entry;
+        }
+        prev_entry_list = entry_list;
+        entry_list = pair_cdr(entry_list);
+    }
+
+// Not found
+    if (fl & DL_CREATE_ON_ABSENT) {
+        SGC_ROOT1(frame, key);
+        entry_list = *entry_ref;
+        entry = pair_wrap(frame, key, nil_wrap());
+        *entry_ref = pair_wrap(frame, entry, entry_list);
+
+        self->as_dict.nb_items += 1;
+        // :: Insert code here to rehash and expand the vector.
+        if (self->as_dict.nb_items > 1.5 * vector_length(self->as_dict.vec)) {
+            dict_rehash(frame, self, (1 + self->as_dict.hash_mask) * 2);
+        }
+
+        return entry;
+    }
+    else {
+        return NULL;
+    }
+
+found_entry:
+    if (fl & DL_POP_IF_FOUND) {
+        if (prev_entry_list) {
+            pair_set_cdr(prev_entry_list, pair_cdr(entry_list));
+        }
+        else {
+            // The found entry is the first entry.
+            *entry_ref = pair_cdr(entry_list);
+        }
+        self->as_dict.nb_items -= 1;
+        // :: Insert code here to rehash and shrink the vector.
+        if (self->as_dict.nb_items < 0.3 * vector_length(self->as_dict.vec) &&
+                vector_length(self->as_dict.vec) > DICT_INIT_SIZE * 2) {
+            dict_rehash(frame, self, (1 + self->as_dict.hash_mask) / 2);
+        }
+    }
+    return entry;
+}
+
 // Static utilities
 
 static obj_t *
@@ -797,3 +961,10 @@ environ_gc_visitor(obj_t *self)
     gc_mark(ENV_CAR(self));
     return ENV_CDR(self);
 }
+
+static obj_t *
+dict_gc_visitor(obj_t *self)
+{
+    return self->as_dict.vec;
+}
+

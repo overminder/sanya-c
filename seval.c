@@ -154,6 +154,9 @@ tailcall:
         cdr = pair_cdr(self);
         if (symbolp(car)) {
             // Handling special forms
+
+            // TODO: put syntax constructs in the environ as well,
+            // and use a special token to facilitate TCO.
             if (car == symbol_if) {
                 obj_t *pred, *todo, *otherwise;
                 pred = pair_car(cdr);

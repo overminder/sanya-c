@@ -185,8 +185,10 @@ obj_t *closure_body(obj_t *self);
 
 // Vector
 obj_t *vector_wrap(obj_t **frame, size_t nb_alloc, obj_t *fill);
+obj_t *vector_from_list(obj_t **frame, obj_t *lis);
 obj_t **vector_ref(obj_t *self, long index);
 size_t vector_length(obj_t *self);
+obj_t *vector_to_list(obj_t **frame, obj_t *self);
 
 // Environment
 enum environ_lookup_flag {

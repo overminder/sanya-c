@@ -31,6 +31,11 @@
     return T_EXPR;
 }
 
+"#(" {
+    return T_SHARPLPAREN;
+}
+
+
 -?[0-9]+ {
     yylval.obj_val = make_fixnum(yytext);
     return T_EXPR;

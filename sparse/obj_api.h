@@ -80,4 +80,10 @@ make_quoted(obj_t *item)
     return make_pair(make_symbol("quote"), make_pair(item, make_nil()));
 }
 
+static obj_t *
+make_vector(obj_t *lis)
+{
+    return vector_from_list(NULL, lis);
+}
+
 #endif /* OBJ_API_H */

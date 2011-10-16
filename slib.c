@@ -24,12 +24,14 @@ static obj_t *lib_car(obj_t **frame);
 static obj_t *lib_cdr(obj_t **frame);
 static obj_t *lib_set_car(obj_t **frame);
 static obj_t *lib_set_cdr(obj_t **frame);
+static obj_t *lib_list2vector(obj_t **frame);
 
 static obj_t *lib_make_vector(obj_t **frame);
 static obj_t *lib_vectorp(obj_t **frame);
 static obj_t *lib_vector_length(obj_t **frame);
 static obj_t *lib_vector_ref(obj_t **frame);
 static obj_t *lib_vector_set(obj_t **frame);
+static obj_t *lib_vector2list(obj_t **frame);
 
 static obj_t *lib_make_dict(obj_t **frame);
 static obj_t *lib_dictp(obj_t **frame);
@@ -82,6 +84,7 @@ static procdef_t library[] = {
     {"cdr", lib_cdr},
     {"set-car!", lib_set_car},
     {"set-cdr!", lib_set_cdr},
+    {"list->vector", lib_list2vector},
 
     // Vector
     {"make-vector", lib_make_vector},
@@ -89,6 +92,7 @@ static procdef_t library[] = {
     {"vector-length", lib_vector_length},
     {"vector-ref", lib_vector_ref},
     {"vector-set!", lib_vector_set},
+    {"vector->list", lib_vector2list},
 
     // Hashtable
     {"make-hash", lib_make_dict},
@@ -334,6 +338,19 @@ lib_set_cdr(obj_t **frame)
 }
 
 static obj_t *
+lib_list2vector(obj_t **frame)
+{
+    obj_t *pair, *new_cdr;
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        return vector_from_list(frame, *frame_ref(frame, 0));
+    }
+    else {
+        fatal_error("list->vector require 1 argument");
+    }
+}
+
+static obj_t *
 lib_make_vector(obj_t **frame)
 {
     LIB_PROC_HEADER();
@@ -395,6 +412,20 @@ lib_vector_set(obj_t **frame)
     }
     else {
         fatal_error("vector-set! require 3 arguments");
+    }
+}
+
+static obj_t *
+lib_vector2list(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    obj_t *vec;
+    if (argc == 1) {
+        vec = *frame_ref(frame, 0);
+        return vector_to_list(frame, vec);
+    }
+    else {
+        fatal_error("vector->list require 1 argument");
     }
 }
 

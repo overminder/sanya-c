@@ -1,0 +1,461 @@
+
+GC-PRINT-STACK
+==============
+
+#  0  0x1a8c340  #<environ at 0x1a8c340 outer=0x1a87550>
+#  1  0x1a86fa8  [frame-pointer-dump]
+#  2  0x1a8acc0  #<procedure at 0x405c80>
+#  3  0x1a8c340  #<environ at 0x1a8c340 outer=0x1a87550>
+#  4  0x1a86fc0  [frame-pointer-dump]
+#  5  0x1a90710  (runtime-info)
+#  6  0x1a8c340  #<environ at 0x1a8c340 outer=0x1a87550>
+#  7  0x1a86fd8  [frame-pointer-dump]
+#  8  0x1a90740  ((runtime-info))
+#  9  0x1a8c340  #<environ at 0x1a8c340 outer=0x1a87550>
+# 10  0x1a86ff0  [frame-pointer-dump]
+# 11  (nil)
+# 12  0x1a87550  #<environ at 0x1a87550>
+# 13  (nil)
+# 14  (nil)
+# 15  0x1a87020  #<hash-table (51/64)>
+
+**************
+GC-PRINT-STACK
+
+
+GC-PRINT-HEAP
+=============
+
+#  0  0x1a90740  ((runtime-info))
+#  1  0x1a90710  (runtime-info)
+#  2  0x1a906d0  runtime-info
+#  3  0x1a8c3a0  #(() () () () () () () ())
+#  4  0x1a8c370  #<hash-table (0/8)>
+#  5  0x1a8c340  #<environ at 0x1a8c340 outer=0x1a87550>
+#  6  0x1a8c310  ((newline . #<procedure at 0x406156>) (readline-set-prompt . #<procedure at 0x405f22>))
+#  7  0x1a8c2e0  (newline . #<procedure at 0x406156>)
+#  8  0x1a8c2b0  ((newline))
+#  9  0x1a8c280  (newline)
+# 10  0x1a8c250  newline
+# 11  0x1a8c230  #<procedure at 0x406156>
+# 12  0x1a8c200  ((display . #<procedure at 0x4060d4>) (< . #<procedure at 0x4049c8>) (hash-table? . #<procedure at 0x404fff>))
+# 13  0x1a8c1d0  (display . #<procedure at 0x4060d4>)
+# 14  0x1a8c1a0  ((display))
+# 15  0x1a8c170  (display)
+# 16  0x1a8c140  display
+# 17  0x1a8c120  #<procedure at 0x4060d4>
+# 18  0x1a8c0f0  ((read . #<procedure at 0x406012>) (eq? . #<procedure at 0x405a9f>) (boolean? . #<procedure at 0x4058e7>))
+# 19  0x1a8c0c0  (read . #<procedure at 0x406012>)
+# 20  0x1a8c090  ((hash-set!) (eof?))
+# 21  0x1a8c060  ((eof?))
+# 22  0x1a8c030  ((hash-ref))
+# 23  0x1a8c000  ((hash-table?) (<))
+# 24  0x1a8bfd0  ((<))
+# 25  0x1a8bfa0  ((runtime-info))
+# 26  0x1a8bf70  ((symbol->string))
+# 27  0x1a8bf40  ((gensym))
+# 28  0x1a8bf10  ((hash-delete!))
+# 29  0x1a8bee0  ((hash-exists?))
+# 30  0x1a8beb0  ((set-cdr!))
+# 31  0x1a8be80  ((set-car!) (begin) (cons) (unspecified?))
+# 32  0x1a8be50  ((begin) (cons) (unspecified?))
+# 33  0x1a8be20  ((cons) (unspecified?))
+# 34  0x1a8bdf0  ((unspecified?))
+# 35  0x1a8bdc0  ((define) (eq?))
+# 36  0x1a8bd90  ((boolean?) (read))
+# 37  0x1a8bd60  ((eq?))
+# 38  0x1a8bd30  ((read))
+# 39  0x1a8bd00  ((integer?) (string->symbol))
+# 40  0x1a8bcd0  ((string->symbol))
+# 41  0x1a8bca0  ((apply) (null-environment))
+# 42  0x1a8bc70  ((scheme-report-environment))
+# 43  0x1a8bc40  ((null-environment))
+# 44  0x1a8bc10  ((pair?))
+# 45  0x1a8bbe0  ((make-hash))
+# 46  0x1a8bbb0  ((quote) (symbol?) (load))
+# 47  0x1a8bb80  ((symbol?) (load))
+# 48  0x1a8bb50  ((load))
+# 49  0x1a8bb20  ((make-vector))
+# 50  0x1a8baf0  ((readline-set-prompt))
+# 51  0x1a8bac0  ((vector-length))
+# 52  0x1a8ba90  ((lambda) (-))
+# 53  0x1a8ba60  ((-))
+# 54  0x1a8ba30  ((vector-set!))
+# 55  0x1a8ba00  ((vector-ref) (car) (+))
+# 56  0x1a8b9d0  ((car) (+))
+# 57  0x1a8b9a0  ((+))
+# 58  0x1a8b970  ((...))
+# 59  0x1a8b940  ((eval))
+# 60  0x1a8b910  ((vector?) (if))
+# 61  0x1a8b8e0  ((if))
+# 62  0x1a8b8b0  ((hash-ref/default))
+# 63  0x1a8b880  ((set!))
+# 64  0x1a8b850  ((let-syntax))
+# 65  0x1a8b820  ((gc))
+# 66  0x1a8b7f0  ((hash))
+# 67  0x1a8b7c0  ((null?))
+# 68  0x1a8b790  ((cdr))
+# 69  0x1a8b560  #(() () () () ((let-syntax)) () () () () ((...)) () () () () () ((newline)) () () ((quote) (symbol?) (load)) () ((scheme-report-environment)) ((integer?) (string->symbol)) () () ((boolean?) (read)) ((set-car!) (begin) (cons) (unspecified?)) ((hash-exists?)) ((symbol->string)) () ((display)) () ((hash-set!) (eof?)) ((cdr)) ((null?)) ((hash)) ((gc)) () ((set!)) ((hash-ref/default)) ((vector?) (if)) () ((eval)) ((vector-ref) (car) (+)) ((vector-set!)) ((lambda) (-)) ((vector-length)) () ((readline-set-prompt)) ((make-vector)) () ((make-hash)) ((pair?)) ((apply) (null-environment)) () () () ((define) (eq?)) ((set-cdr!)) ((hash-delete!)) ((gensym)) ((runtime-info)) ((hash-table?) (<)) ((hash-ref)) ())
+# 70  0x1a8b530  #<hash-table (0/64)>
+# 71  0x1a8b500  ((read) (eq?) (boolean?) (define))
+# 72  0x1a8b4d0  (read)
+# 73  0x1a8b4a0  read
+# 74  0x1a8b480  #<procedure at 0x406012>
+# 75  0x1a8b450  ((readline-set-prompt . #<procedure at 0x405f22>))
+# 76  0x1a8b420  (readline-set-prompt . #<procedure at 0x405f22>)
+# 77  0x1a8b3f0  ((readline-set-prompt))
+# 78  0x1a8b3c0  (readline-set-prompt)
+# 79  0x1a8b380  readline-set-prompt
+# 80  0x1a8b360  #<procedure at 0x405f22>
+# 81  0x1a8b330  ((load . #<procedure at 0x405e4b>) (make-hash . #<procedure at 0x404fa7>) (symbol? . #<procedure at 0x405791>))
+# 82  0x1a8b300  (load . #<procedure at 0x405e4b>)
+# 83  0x1a8b2d0  ((load) (symbol?) (quote) (make-hash))
+# 84  0x1a8b2a0  (load)
+# 85  0x1a8b270  load
+# 86  0x1a8b250  #<procedure at 0x405e4b>
+# 87  0x1a8b220  ((null-environment . #<procedure at 0x405d18>) (scheme-report-environment . #<procedure at 0x405db9>) (apply . #<procedure at 0x405d02>))
+# 88  0x1a8b1f0  (null-environment . #<procedure at 0x405d18>)
+# 89  0x1a8b1c0  ((null-environment) (scheme-report-environment) (apply))
+# 90  0x1a8b190  (null-environment)
+# 91  0x1a8b150  null-environment
+# 92  0x1a8b130  #<procedure at 0x405d18>
+# 93  0x1a8b100  ((scheme-report-environment . #<procedure at 0x405db9>) (apply . #<procedure at 0x405d02>))
+# 94  0x1a8b0d0  (scheme-report-environment . #<procedure at 0x405db9>)
+# 95  0x1a8b0a0  ((scheme-report-environment) (apply))
+# 96  0x1a8b070  (scheme-report-environment)
+# 97  0x1a8b020  scheme-report-environment
+# 98  0x1a8b000  #<procedure at 0x405db9>
+# 99  0x1a8afd0  ((apply . #<procedure at 0x405d02>))
+#100  0x1a8afa0  (apply . #<procedure at 0x405d02>)
+#101  0x1a8af70  ((apply))
+#102  0x1a8af40  (apply)
+#103  0x1a8af10  apply
+#104  0x1a8aef0  #<procedure at 0x405d02>
+#105  0x1a8aec0  ((eval . #<procedure at 0x405cec>))
+#106  0x1a8ae90  (eval . #<procedure at 0x405cec>)
+#107  0x1a8ae60  ((eval) (...))
+#108  0x1a8ae30  (eval)
+#109  0x1a8ae00  eval
+#110  0x1a8ade0  #<procedure at 0x405cec>
+#111  0x1a8adb0  ((runtime-info . #<procedure at 0x405c80>))
+#112  0x1a8ad80  (runtime-info . #<procedure at 0x405c80>)
+#113  0x1a8ad50  ((runtime-info))
+#114  0x1a8ad20  (runtime-info)
+#115  0x1a8ace0  runtime-info
+#116  0x1a8acc0  #<procedure at 0x405c80>
+#117  0x1a8ac90  ((gc . #<procedure at 0x405a3d>))
+#118  0x1a8ac60  (gc . #<procedure at 0x405a3d>)
+#119  0x1a8ac30  ((gc))
+#120  0x1a8ac00  (gc)
+#121  0x1a8abd0  gc
+#122  0x1a8abb0  #<procedure at 0x405a3d>
+#123  0x1a8ab80  ((eq? . #<procedure at 0x405a9f>) (boolean? . #<procedure at 0x4058e7>))
+#124  0x1a8ab50  (eq? . #<procedure at 0x405a9f>)
+#125  0x1a8ab20  ((eq?) (boolean?) (define))
+#126  0x1a8aaf0  (eq?)
+#127  0x1a8aac0  eq?
+#128  0x1a8aaa0  #<procedure at 0x405a9f>
+#129  0x1a8aa70  ((unspecified? . #<procedure at 0x405959>) (set-cdr! . #<procedure at 0x404c5a>) (set-car! . #<procedure at 0x404bc1>) (cons . #<procedure at 0x404a65>))
+#130  0x1a8aa40  (unspecified? . #<procedure at 0x405959>)
+#131  0x1a8aa10  ((unspecified?) (cons) (begin) (set-car!) (set-cdr!))
+#132  0x1a8a9e0  (unspecified?)
+#133  0x1a8a9a0  unspecified?
+#134  0x1a8a980  #<procedure at 0x405959>
+#135  0x1a8a950  ((eof? . #<procedure at 0x4059cb>) (hash-set! . #<procedure at 0x4051eb>))
+#136  0x1a8a920  (eof? . #<procedure at 0x4059cb>)
+#137  0x1a8a8f0  ((eof?) (hash-set!))
+#138  0x1a8a8c0  (eof?)
+#139  0x1a8a890  eof?
+#140  0x1a8a870  #<procedure at 0x4059cb>
+#141  0x1a8a840  ((boolean? . #<procedure at 0x4058e7>))
+#142  0x1a8a810  (boolean? . #<procedure at 0x4058e7>)
+#143  0x1a8a7e0  ((boolean?) (define))
+#144  0x1a8a7b0  (boolean?)
+#145  0x1a8a780  boolean?
+#146  0x1a8a760  #<procedure at 0x4058e7>
+#147  0x1a8a730  ((null? . #<procedure at 0x4056ad>))
+#148  0x1a8a700  (null? . #<procedure at 0x4056ad>)
+#149  0x1a8a6d0  ((null?))
+#150  0x1a8a6a0  (null?)
+#151  0x1a8a670  null?
+#152  0x1a8a650  #<procedure at 0x4056ad>
+#153  0x1a8a620  ((gensym . #<procedure at 0x4055dd>) (symbol->string . #<procedure at 0x40540b>))
+#154  0x1a8a5f0  (gensym . #<procedure at 0x4055dd>)
+#155  0x1a8a5c0  ((gensym) (symbol->string))
+#156  0x1a8a590  (gensym)
+#157  0x1a8a560  gensym
+#158  0x1a8a540  #<procedure at 0x4055dd>
+#159  0x1a8a510  ((string->symbol . #<procedure at 0x40555b>) (integer? . #<procedure at 0x405803>))
+#160  0x1a8a4e0  (string->symbol . #<procedure at 0x40555b>)
+#161  0x1a8a4b0  ((string->symbol) (integer?))
+#162  0x1a8a480  (string->symbol)
+#163  0x1a8a440  string->symbol
+#164  0x1a8a420  #<procedure at 0x40555b>
+#165  0x1a8a3f0  ((hash-set! . #<procedure at 0x4051eb>))
+#166  0x1a8a3c0  ((hash-ref . #<procedure at 0x405071>))
+#167  0x1a8a390  ((vector-length . #<procedure at 0x404dd3>))
+#168  0x1a8a360  ((< . #<procedure at 0x4049c8>) (hash-table? . #<procedure at 0x404fff>))
+#169  0x1a8a330  ((hash-table? . #<procedure at 0x404fff>))
+#170  0x1a8a300  ((- . #<procedure at 0x404837>))
+#171  0x1a8a2d0  ((vector-set! . #<procedure at 0x404ee7>))
+#172  0x1a8a2a0  ((symbol->string . #<procedure at 0x40540b>))
+#173  0x1a8a270  ((car . #<procedure at 0x404af1>) (+ . #<procedure at 0x40475b>) (vector-ref . #<procedure at 0x404e4d>))
+#174  0x1a8a240  ((+ . #<procedure at 0x40475b>) (vector-ref . #<procedure at 0x404e4d>))
+#175  0x1a8a210  ((vector-ref . #<procedure at 0x404e4d>))
+#176  0x1a8a1e0  ((hash-delete! . #<procedure at 0x4052bd>) (hash-exists? . #<procedure at 0x405360>))
+#177  0x1a8a1b0  ((hash-exists? . #<procedure at 0x405360>))
+#178  0x1a8a180  ((set-cdr! . #<procedure at 0x404c5a>) (set-car! . #<procedure at 0x404bc1>) (cons . #<procedure at 0x404a65>))
+#179  0x1a8a150  ((set-car! . #<procedure at 0x404bc1>) (cons . #<procedure at 0x404a65>))
+#180  0x1a8a120  ((cons . #<procedure at 0x404a65>))
+#181  0x1a8a0f0  ((vector? . #<procedure at 0x405875>))
+#182  0x1a8a0c0  ((hash-ref/default . #<procedure at 0x405127>))
+#183  0x1a8a090  ((integer? . #<procedure at 0x405803>))
+#184  0x1a8a060  ((pair? . #<procedure at 0x40571f>))
+#185  0x1a8a030  ((make-hash . #<procedure at 0x404fa7>) (symbol? . #<procedure at 0x405791>))
+#186  0x1a8a000  ((hash . #<procedure at 0x4054a1>))
+#187  0x1a89fd0  ((symbol? . #<procedure at 0x405791>))
+#188  0x1a89fa0  ((make-vector . #<procedure at 0x404cf3>))
+#189  0x1a89f70  ((cdr . #<procedure at 0x404b59>))
+#190  0x1a89e40  #(((cdr . #<procedure at 0x404b59>)) ((null? . #<procedure at 0x4056ad>)) ((hash . #<procedure at 0x4054a1>)) ((gc . #<procedure at 0x405a3d>)) () () ((hash-ref/default . #<procedure at 0x405127>)) ((vector? . #<procedure at 0x405875>)) () ((eval . #<procedure at 0x405cec>)) ((car . #<procedure at 0x404af1>) (+ . #<procedure at 0x40475b>) (vector-ref . #<procedure at 0x404e4d>)) ((vector-set! . #<procedure at 0x404ee7>)) ((- . #<procedure at 0x404837>)) ((vector-length . #<procedure at 0x404dd3>)) () ((newline . #<procedure at 0x406156>) (readline-set-prompt . #<procedure at 0x405f22>)) ((make-vector . #<procedure at 0x404cf3>)) () ((load . #<procedure at 0x405e4b>) (make-hash . #<procedure at 0x404fa7>) (symbol? . #<procedure at 0x405791>)) ((pair? . #<procedure at 0x40571f>)) ((null-environment . #<procedure at 0x405d18>) (scheme-report-environment . #<procedure at 0x405db9>) (apply . #<procedure at 0x405d02>)) ((string->symbol . #<procedure at 0x40555b>) (integer? . #<procedure at 0x405803>)) () () ((read . #<procedure at 0x406012>) (eq? . #<procedure at 0x405a9f>) (boolean? . #<procedure at 0x4058e7>)) ((unspecified? . #<procedure at 0x405959>) (set-cdr! . #<procedure at 0x404c5a>) (set-car! . #<procedure at 0x404bc1>) (cons . #<procedure at 0x404a65>)) ((hash-delete! . #<procedure at 0x4052bd>) (hash-exists? . #<procedure at 0x405360>)) ((gensym . #<procedure at 0x4055dd>) (symbol->string . #<procedure at 0x40540b>)) ((runtime-info . #<procedure at 0x405c80>)) ((display . #<procedure at 0x4060d4>) (< . #<procedure at 0x4049c8>) (hash-table? . #<procedure at 0x404fff>)) ((hash-ref . #<procedure at 0x405071>)) ((eof? . #<procedure at 0x4059cb>) (hash-set! . #<procedure at 0x4051eb>)))
+#191  0x1a89e10  #<hash-table (0/32)>
+#192  0x1a89de0  ((symbol->string . #<procedure at 0x40540b>) (vector-set! . #<procedure at 0x404ee7>))
+#193  0x1a89db0  (symbol->string . #<procedure at 0x40540b>)
+#194  0x1a89d80  ((symbol->string))
+#195  0x1a89d50  (symbol->string)
+#196  0x1a89d10  symbol->string
+#197  0x1a89cf0  #<procedure at 0x40540b>
+#198  0x1a89cc0  ((symbol? . #<procedure at 0x405791>) (hash . #<procedure at 0x4054a1>) (make-hash . #<procedure at 0x404fa7>))
+#199  0x1a89c90  (symbol? . #<procedure at 0x405791>)
+#200  0x1a89c60  ((symbol?) (quote) (make-hash))
+#201  0x1a89c30  (symbol?)
+#202  0x1a89c00  symbol?
+#203  0x1a89be0  #<procedure at 0x405791>
+#204  0x1a89bb0  ((hash . #<procedure at 0x4054a1>) (make-hash . #<procedure at 0x404fa7>))
+#205  0x1a89b80  (hash . #<procedure at 0x4054a1>)
+#206  0x1a89b50  ((hash))
+#207  0x1a89b20  (hash)
+#208  0x1a89af0  hash
+#209  0x1a89ad0  #<procedure at 0x4054a1>
+#210  0x1a89aa0  ((hash-exists? . #<procedure at 0x405360>) (hash-delete! . #<procedure at 0x4052bd>) (vector-ref . #<procedure at 0x404e4d>) (+ . #<procedure at 0x40475b>) (car . #<procedure at 0x404af1>))
+#211  0x1a89a70  (hash-exists? . #<procedure at 0x405360>)
+#212  0x1a89a40  ((hash-exists?) (hash-delete!))
+#213  0x1a89a10  (hash-exists?)
+#214  0x1a899d0  hash-exists?
+#215  0x1a899b0  #<procedure at 0x405360>
+#216  0x1a89980  ((hash-delete! . #<procedure at 0x4052bd>) (vector-ref . #<procedure at 0x404e4d>) (+ . #<procedure at 0x40475b>) (car . #<procedure at 0x404af1>))
+#217  0x1a89950  (hash-delete! . #<procedure at 0x4052bd>)
+#218  0x1a89920  ((hash-delete!))
+#219  0x1a898f0  (hash-delete!)
+#220  0x1a898b0  hash-delete!
+#221  0x1a89890  #<procedure at 0x4052bd>
+#222  0x1a89860  ((hash-set! . #<procedure at 0x4051eb>))
+#223  0x1a89830  (hash-set! . #<procedure at 0x4051eb>)
+#224  0x1a89800  ((hash-set!))
+#225  0x1a897d0  (hash-set!)
+#226  0x1a89790  hash-set!
+#227  0x1a89770  #<procedure at 0x4051eb>
+#228  0x1a89740  ((hash-ref/default . #<procedure at 0x405127>))
+#229  0x1a89710  (hash-ref/default . #<procedure at 0x405127>)
+#230  0x1a896e0  ((hash-ref/default))
+#231  0x1a896b0  (hash-ref/default)
+#232  0x1a89670  hash-ref/default
+#233  0x1a89650  #<procedure at 0x405127>
+#234  0x1a89620  ((hash-ref . #<procedure at 0x405071>))
+#235  0x1a895f0  (hash-ref . #<procedure at 0x405071>)
+#236  0x1a895c0  ((hash-ref))
+#237  0x1a89590  (hash-ref)
+#238  0x1a89560  hash-ref
+#239  0x1a89540  #<procedure at 0x405071>
+#240  0x1a89510  ((hash-table? . #<procedure at 0x404fff>) (< . #<procedure at 0x4049c8>) (vector-length . #<procedure at 0x404dd3>))
+#241  0x1a894e0  (hash-table? . #<procedure at 0x404fff>)
+#242  0x1a894b0  ((<) (hash-table?))
+#243  0x1a89480  ((vector-length))
+#244  0x1a89450  ((hash-table?))
+#245  0x1a89420  ((-) (lambda))
+#246  0x1a893f0  ((lambda))
+#247  0x1a893c0  ((vector-set!))
+#248  0x1a89390  ((+) (car) (vector-ref))
+#249  0x1a89360  ((car) (vector-ref))
+#250  0x1a89330  ((vector-ref))
+#251  0x1a89300  ((cons) (begin) (set-car!) (set-cdr!))
+#252  0x1a892d0  ((...))
+#253  0x1a892a0  ((begin) (set-car!) (set-cdr!))
+#254  0x1a89270  ((set-car!) (set-cdr!))
+#255  0x1a89240  ((set-cdr!))
+#256  0x1a89210  ((define))
+#257  0x1a891e0  ((if) (vector?))
+#258  0x1a891b0  ((vector?))
+#259  0x1a89180  ((integer?))
+#260  0x1a89150  ((set!))
+#261  0x1a89120  ((let-syntax))
+#262  0x1a890f0  ((pair?))
+#263  0x1a890c0  ((quote) (make-hash))
+#264  0x1a89090  ((make-hash))
+#265  0x1a89060  ((cdr))
+#266  0x1a89030  ((make-vector))
+#267  0x1a88f00  #(((cdr)) ((null?)) ((hash)) ((gc)) ((let-syntax)) ((set!)) ((hash-ref/default)) ((if) (vector?)) () ((eval) (...)) ((+) (car) (vector-ref)) ((vector-set!)) ((-) (lambda)) ((vector-length)) () ((readline-set-prompt)) ((make-vector)) () ((load) (symbol?) (quote) (make-hash)) ((pair?)) ((null-environment) (scheme-report-environment) (apply)) ((string->symbol) (integer?)) () () ((read) (eq?) (boolean?) (define)) ((unspecified?) (cons) (begin) (set-car!) (set-cdr!)) ((hash-exists?) (hash-delete!)) ((gensym) (symbol->string)) ((runtime-info)) ((<) (hash-table?)) ((hash-ref)) ((eof?) (hash-set!)))
+#268  0x1a88ed0  #<hash-table (0/32)>
+#269  0x1a88ea0  ((hash-table?) (vector-length) (<))
+#270  0x1a88e70  (hash-table?)
+#271  0x1a88e30  hash-table?
+#272  0x1a88e10  #<procedure at 0x404fff>
+#273  0x1a88de0  ((make-hash . #<procedure at 0x404fa7>))
+#274  0x1a88db0  (make-hash . #<procedure at 0x404fa7>)
+#275  0x1a88d80  ((make-hash) (quote))
+#276  0x1a88d50  (make-hash)
+#277  0x1a88d10  make-hash
+#278  0x1a88cf0  #<procedure at 0x404fa7>
+#279  0x1a88cc0  ((vector-set! . #<procedure at 0x404ee7>))
+#280  0x1a88c90  (vector-set! . #<procedure at 0x404ee7>)
+#281  0x1a88c60  ((vector-set!))
+#282  0x1a88c30  (vector-set!)
+#283  0x1a88bf0  vector-set!
+#284  0x1a88bd0  #<procedure at 0x404ee7>
+#285  0x1a88ba0  ((vector-ref . #<procedure at 0x404e4d>) (+ . #<procedure at 0x40475b>) (car . #<procedure at 0x404af1>))
+#286  0x1a88b70  (vector-ref . #<procedure at 0x404e4d>)
+#287  0x1a88b40  ((vector-ref) (car) (+))
+#288  0x1a88b10  (vector-ref)
+#289  0x1a88ad0  vector-ref
+#290  0x1a88ab0  #<procedure at 0x404e4d>
+#291  0x1a88a80  ((vector? . #<procedure at 0x405875>))
+#292  0x1a88a50  ((integer? . #<procedure at 0x405803>))
+#293  0x1a88a20  ((< . #<procedure at 0x4049c8>) (vector-length . #<procedure at 0x404dd3>))
+#294  0x1a889f0  ((vector-length . #<procedure at 0x404dd3>))
+#295  0x1a889c0  ((- . #<procedure at 0x404837>))
+#296  0x1a88990  ((pair? . #<procedure at 0x40571f>))
+#297  0x1a88960  ((+ . #<procedure at 0x40475b>) (car . #<procedure at 0x404af1>))
+#298  0x1a88930  ((car . #<procedure at 0x404af1>))
+#299  0x1a88900  ((cons . #<procedure at 0x404a65>) (set-car! . #<procedure at 0x404bc1>) (set-cdr! . #<procedure at 0x404c5a>))
+#300  0x1a888d0  ((set-car! . #<procedure at 0x404bc1>) (set-cdr! . #<procedure at 0x404c5a>))
+#301  0x1a888a0  ((set-cdr! . #<procedure at 0x404c5a>))
+#302  0x1a88870  ((cdr . #<procedure at 0x404b59>) (make-vector . #<procedure at 0x404cf3>))
+#303  0x1a88840  ((make-vector . #<procedure at 0x404cf3>))
+#304  0x1a88790  #(((cdr . #<procedure at 0x404b59>) (make-vector . #<procedure at 0x404cf3>)) () ((symbol? . #<procedure at 0x405791>) (hash . #<procedure at 0x4054a1>) (make-hash . #<procedure at 0x404fa7>)) ((pair? . #<procedure at 0x40571f>)) () ((integer? . #<procedure at 0x405803>)) ((hash-ref/default . #<procedure at 0x405127>)) ((vector? . #<procedure at 0x405875>)) () ((cons . #<procedure at 0x404a65>) (set-car! . #<procedure at 0x404bc1>) (set-cdr! . #<procedure at 0x404c5a>)) ((hash-exists? . #<procedure at 0x405360>) (hash-delete! . #<procedure at 0x4052bd>) (vector-ref . #<procedure at 0x404e4d>) (+ . #<procedure at 0x40475b>) (car . #<procedure at 0x404af1>)) ((symbol->string . #<procedure at 0x40540b>) (vector-set! . #<procedure at 0x404ee7>)) ((- . #<procedure at 0x404837>)) ((hash-table? . #<procedure at 0x404fff>) (< . #<procedure at 0x4049c8>) (vector-length . #<procedure at 0x404dd3>)) ((hash-ref . #<procedure at 0x405071>)) ((hash-set! . #<procedure at 0x4051eb>)))
+#305  0x1a88760  #<hash-table (0/16)>
+#306  0x1a88730  ((vector-length . #<procedure at 0x404dd3>) (< . #<procedure at 0x4049c8>) (integer? . #<procedure at 0x405803>))
+#307  0x1a88700  (vector-length . #<procedure at 0x404dd3>)
+#308  0x1a886d0  ((vector-length) (<))
+#309  0x1a886a0  (vector-length)
+#310  0x1a88660  vector-length
+#311  0x1a88640  #<procedure at 0x404dd3>
+#312  0x1a88610  ((vector? . #<procedure at 0x405875>))
+#313  0x1a885e0  (vector? . #<procedure at 0x405875>)
+#314  0x1a885b0  ((vector?) (if))
+#315  0x1a88580  (vector?)
+#316  0x1a88550  vector?
+#317  0x1a88530  #<procedure at 0x405875>
+#318  0x1a88500  ((make-vector . #<procedure at 0x404cf3>) (cdr . #<procedure at 0x404b59>))
+#319  0x1a884d0  (make-vector . #<procedure at 0x404cf3>)
+#320  0x1a884a0  ((make-vector) (cdr))
+#321  0x1a88470  (make-vector)
+#322  0x1a88430  make-vector
+#323  0x1a88410  #<procedure at 0x404cf3>
+#324  0x1a883e0  ((set-cdr! . #<procedure at 0x404c5a>) (set-car! . #<procedure at 0x404bc1>) (cons . #<procedure at 0x404a65>))
+#325  0x1a883b0  (set-cdr! . #<procedure at 0x404c5a>)
+#326  0x1a88380  ((set-cdr!) (set-car!) (begin) (...) (cons))
+#327  0x1a88350  (set-cdr!)
+#328  0x1a88320  set-cdr!
+#329  0x1a88300  #<procedure at 0x404c5a>
+#330  0x1a882d0  ((set-car! . #<procedure at 0x404bc1>) (cons . #<procedure at 0x404a65>))
+#331  0x1a882a0  (set-car! . #<procedure at 0x404bc1>)
+#332  0x1a88270  ((set-car!) (begin) (...) (cons))
+#333  0x1a88240  (set-car!)
+#334  0x1a88210  set-car!
+#335  0x1a881f0  #<procedure at 0x404bc1>
+#336  0x1a881c0  ((cdr . #<procedure at 0x404b59>))
+#337  0x1a88190  (cdr . #<procedure at 0x404b59>)
+#338  0x1a88160  ((cdr))
+#339  0x1a88130  (cdr)
+#340  0x1a88100  cdr
+#341  0x1a880e0  #<procedure at 0x404b59>
+#342  0x1a880b0  ((car . #<procedure at 0x404af1>) (+ . #<procedure at 0x40475b>))
+#343  0x1a88080  (car . #<procedure at 0x404af1>)
+#344  0x1a88050  ((car) (+))
+#345  0x1a88020  (car)
+#346  0x1a87ff0  car
+#347  0x1a87fd0  #<procedure at 0x404af1>
+#348  0x1a87fa0  ((pair? . #<procedure at 0x40571f>))
+#349  0x1a87f70  (pair? . #<procedure at 0x40571f>)
+#350  0x1a87f40  ((pair?))
+#351  0x1a87f10  (pair?)
+#352  0x1a87ee0  pair?
+#353  0x1a87ec0  #<procedure at 0x40571f>
+#354  0x1a87e90  ((cons . #<procedure at 0x404a65>))
+#355  0x1a87e60  (cons . #<procedure at 0x404a65>)
+#356  0x1a87e30  ((if))
+#357  0x1a87e00  ((set!) (integer?))
+#358  0x1a87dd0  ((integer?))
+#359  0x1a87da0  ((<))
+#360  0x1a87d70  ((lambda) (-))
+#361  0x1a87d40  ((let-syntax))
+#362  0x1a87d10  ((-))
+#363  0x1a87ce0  ((quote))
+#364  0x1a87cb0  ((+))
+#365  0x1a87c80  ((begin) (...) (cons))
+#366  0x1a87c50  ((...) (cons))
+#367  0x1a87c20  ((cons))
+#368  0x1a87bf0  ((define))
+#369  0x1a87b40  #(((make-vector) (cdr)) () ((make-hash) (quote)) ((pair?)) ((let-syntax)) ((set!) (integer?)) () ((vector?) (if)) ((define)) ((set-cdr!) (set-car!) (begin) (...) (cons)) ((vector-ref) (car) (+)) ((vector-set!)) ((lambda) (-)) ((hash-table?) (vector-length) (<)) () ())
+#370  0x1a87b10  #<hash-table (0/16)>
+#371  0x1a87ae0  ((cons) (...) (begin))
+#372  0x1a87ab0  (cons)
+#373  0x1a87a80  cons
+#374  0x1a87a60  #<procedure at 0x404a65>
+#375  0x1a87a30  ((< . #<procedure at 0x4049c8>) (integer? . #<procedure at 0x405803>))
+#376  0x1a87a00  (< . #<procedure at 0x4049c8>)
+#377  0x1a879d0  ((<) (integer?) (set!))
+#378  0x1a879a0  (<)
+#379  0x1a87970  <
+#380  0x1a87950  #<procedure at 0x4049c8>
+#381  0x1a87920  ((- . #<procedure at 0x404837>))
+#382  0x1a878f0  (- . #<procedure at 0x404837>)
+#383  0x1a878c0  ((-) (let-syntax) (lambda))
+#384  0x1a87890  (-)
+#385  0x1a87860  -
+#386  0x1a87840  #<procedure at 0x404837>
+#387  0x1a87810  ((+ . #<procedure at 0x40475b>))
+#388  0x1a877e0  (+ . #<procedure at 0x40475b>)
+#389  0x1a877b0  ((+) (quote))
+#390  0x1a87780  (+)
+#391  0x1a87750  +
+#392  0x1a87730  #<procedure at 0x40475b>
+#393  0x1a87700  ((integer? . #<procedure at 0x405803>))
+#394  0x1a876d0  (integer? . #<procedure at 0x405803>)
+#395  0x1a876a0  ((integer?) (set!))
+#396  0x1a87670  (integer?)
+#397  0x1a87640  integer?
+#398  0x1a87620  #<procedure at 0x405803>
+#399  0x1a875b0  #(((make-vector . #<procedure at 0x404cf3>) (cdr . #<procedure at 0x404b59>)) ((set-cdr! . #<procedure at 0x404c5a>) (set-car! . #<procedure at 0x404bc1>) (cons . #<procedure at 0x404a65>)) ((car . #<procedure at 0x404af1>) (+ . #<procedure at 0x40475b>)) ((pair? . #<procedure at 0x40571f>)) ((- . #<procedure at 0x404837>)) ((vector-length . #<procedure at 0x404dd3>) (< . #<procedure at 0x4049c8>) (integer? . #<procedure at 0x405803>)) () ((vector? . #<procedure at 0x405875>)))
+#400  0x1a87580  #<hash-table (43/32)>
+#401  0x1a87550  #<environ at 0x1a87550>
+#402  0x1a87520  ((...) (begin))
+#403  0x1a874f0  (...)
+#404  0x1a874c0  ...
+#405  0x1a87490  ((let-syntax) (lambda))
+#406  0x1a87460  (let-syntax)
+#407  0x1a87420  let-syntax
+#408  0x1a873f0  ((quote))
+#409  0x1a873c0  (quote)
+#410  0x1a87390  quote
+#411  0x1a87360  ((begin))
+#412  0x1a87330  (begin)
+#413  0x1a87300  begin
+#414  0x1a872d0  ((set!))
+#415  0x1a872a0  (set!)
+#416  0x1a87270  set!
+#417  0x1a87240  ((define))
+#418  0x1a87210  (define)
+#419  0x1a871e0  define
+#420  0x1a871b0  ((lambda))
+#421  0x1a87180  (lambda)
+#422  0x1a87150  lambda
+#423  0x1a87120  ((if))
+#424  0x1a870f0  (if)
+#425  0x1a870c0  if
+#426  0x1a87050  #(((define)) ((cons) (...) (begin)) ((+) (quote)) () ((-) (let-syntax) (lambda)) ((<) (integer?) (set!)) () ((if)))
+#427  0x1a87020  #<hash-table (51/64)>
+
+
+*************
+GC-PRINT-HEAP
+

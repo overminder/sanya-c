@@ -717,6 +717,32 @@ vector_wrap(obj_t **frame, size_t nb_alloc, obj_t *fill)
     return self;
 }
 
+obj_t *
+vector_from_list(obj_t **frame, obj_t *lis)
+{
+    // First pass -- Calculate the length
+    size_t list_len = 0;
+    obj_t *iter = lis;
+
+    while (pairp(iter)) {
+        ++list_len;
+        iter = pair_cdr(iter);
+    }
+    if (!nullp(iter)) {
+        fatal_error("list->vector -- not a well-formed list");
+    }
+
+    // Second pass -- make a list and do copy
+    SGC_ROOT1(frame, lis);
+    obj_t *self = vector_wrap(frame, list_len, nil_wrap());
+    size_t i = 0;
+    for (; i < list_len; ++i, lis = pair_cdr(lis)) {
+        *vector_ref(self, i) = pair_car(lis);
+    }
+    return self;
+}
+
+
 obj_t **
 vector_ref(obj_t *self, long index)
 {
@@ -727,6 +753,19 @@ size_t
 vector_length(obj_t *self)
 {
     return self->as_vector.nb_alloc;
+}
+
+obj_t *
+vector_to_list(obj_t **frame, obj_t *self)
+{
+    obj_t *lis = nil_wrap();
+    long i = vector_length(self) - 1;
+    --frame;
+    for (; i >= 0; --i) {
+        *frame = lis;
+        lis = pair_wrap(frame, *vector_ref(self, i), lis);
+    }
+    return lis;
 }
 
 // Accessor macros for environ

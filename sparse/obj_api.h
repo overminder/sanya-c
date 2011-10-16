@@ -10,6 +10,35 @@ make_symbol(const char *s)
 }
 
 static obj_t *
+make_string(const char *s, size_t len)
+{
+    obj_t *retval;
+    size_t i, buf_i;
+    char *buf = malloc(len);
+    for (i = 0, buf_i = 0; i < len; ++i, ++buf_i) {
+        if (s[i] == '\\') {
+            ++i;
+            switch (s[i]) {
+                case 'n':
+                    buf[buf_i] = '\n'; break;
+                case 'r':
+                    buf[buf_i] = '\r'; break;
+                case 't':
+                    buf[buf_i] = '\t'; break;
+                default:
+                    buf[buf_i] = s[i]; break;
+            }
+        }
+        else {
+            buf[buf_i] = s[i];
+        }
+    }
+    retval = string_wrap(NULL, buf, buf_i);
+    free(buf);
+    return retval;
+}
+
+static obj_t *
 make_fixnum(const char *s)
 {
     return fixnum_wrap(NULL, atoi(s));

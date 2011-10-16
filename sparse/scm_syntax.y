@@ -72,9 +72,9 @@ sparse_do_string(char *s)
     yy_switch_to_buffer(buf);
     gc_set_enabled(0);
     yyparse();
+    *prog_frame = prog_expr;
     gc_set_enabled(1);
     yy_delete_buffer(buf);
-    *prog_frame = prog_expr;
 }
 
 void
@@ -83,7 +83,8 @@ sparse_do_file(FILE *fp)
     yyin = fp;
     gc_set_enabled(0);
     yyparse();
-    gc_set_enabled(1);
     *prog_frame = prog_expr;
+    gc_set_enabled(1);
+    yyin = NULL;
 }
 

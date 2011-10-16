@@ -38,6 +38,7 @@ sobj_init()
     gc_register_type(TP_PROC, default_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_FIXNUM, default_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_FLONUM, default_gc_visitor, default_gc_finalizer);
+    gc_register_type(TP_STRING, default_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_CLOSURE, closure_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_NIL, default_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_VECTOR, vector_gc_visitor, default_gc_finalizer);
@@ -63,17 +64,17 @@ const char *
 get_typename(obj_t *self)
 {
     switch (get_type(self)) {
-    case TP_PAIR: return "pair";
-    case TP_SYMBOL: return "symbol";
-    case TP_PROC: return "procedure";
-    case TP_FIXNUM: return "fixnum";
-    case TP_FLONUM: return "flonum";
-    case TP_CLOSURE: return "closure";
-    case TP_NIL: return "nil";
-    case TP_VECTOR: return "vector";
-    case TP_BOOLEAN: return "boolean";
-    case TP_UNSPECIFIED: return "unspecified";
-    case TP_UDATA: return "udata";
+        case TP_PAIR: return "pair";
+        case TP_SYMBOL: return "symbol";
+        case TP_PROC: return "procedure";
+        case TP_FIXNUM: return "fixnum";
+        case TP_FLONUM: return "flonum";
+        case TP_CLOSURE: return "closure";
+        case TP_NIL: return "nil";
+        case TP_VECTOR: return "vector";
+        case TP_BOOLEAN: return "boolean";
+        case TP_UNSPECIFIED: return "unspecified";
+        case TP_UDATA: return "udata";
     }
     NOT_REACHED();
 }
@@ -123,6 +124,10 @@ print_repr(obj_t *self, FILE *stream)
 
     case TP_FLONUM:
         fprintf(stream, "%g", flonum_unwrap(self));
+        break;
+
+    case TP_STRING:
+        fwrite(string_unwrap(self), 1, string_length(self), stream);
         break;
 
     case TP_CLOSURE:
@@ -197,6 +202,18 @@ bool_t
 fixnump(obj_t *self)
 {
     return get_type(self) == TP_FIXNUM;
+}
+
+bool_t
+flonump(obj_t *self)
+{
+    return get_type(self) == TP_FLONUM;
+}
+
+bool_t
+stringp(obj_t *self)
+{
+    return get_type(self) == TP_STRING;
 }
 
 bool_t
@@ -440,6 +457,53 @@ symbol_eq(obj_t *self, obj_t *other)
         return 1;
     else
         return 0;
+}
+
+obj_t *
+string_wrap(obj_t **frame_ptr, const char *sval, size_t len)
+{
+    obj_t *self = gc_malloc(sizeof(string_obj_t) + len, TP_STRING);
+#ifndef ALWAYS_COLLECT
+    if (!self) {
+#endif
+        gc_collect(frame_ptr);
+        self = gc_malloc(sizeof(string_obj_t) + len, TP_STRING);
+        if (!self)
+            fatal_error("out of memory");
+#ifndef ALWAYS_COLLECT
+    }
+#endif
+    memcpy(self->as_string.val, sval, len);
+    self->as_string.val[len] = '\0';
+    self->as_string.length = len;
+    return self;
+}
+
+const char *
+string_unwrap(obj_t *self)
+{
+    return self->as_string.val;
+}
+
+size_t
+string_length(obj_t *self)
+{
+    return self->as_string.length;
+}
+
+bool_t
+string_eq(obj_t *self, obj_t *other)
+{
+    size_t i, len;
+
+    if ((len = string_length(self)) != string_length(other))
+        return 0;
+    
+    for (i = 0; i < len; ++i) {
+        if (self->as_string.val[i] != other->as_string.val[i])
+            return 0;
+    }
+    return 1;
 }
 
 // Proc

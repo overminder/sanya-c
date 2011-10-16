@@ -1,8 +1,14 @@
 
+#include "rl.h"  // for read.
 #include "sgc.h"
 #include "slib.h"
 #include "seval.h"
 #include "seval_impl.h"
+
+// From sparse/scm_*
+extern void sparse_do_string(const char *);
+extern void sparse_do_file(FILE *);
+extern obj_t *sparse_get_expr();
 
 typedef struct {
     const char *name;
@@ -35,6 +41,10 @@ static obj_t *lib_apply(obj_t **frame);
 static obj_t *lib_null_environ(obj_t **frame);
 static obj_t *lib_report_environ(obj_t **frame);
 
+static obj_t *lib_load(obj_t **frame);
+
+static obj_t *lib_rl_setprompt(obj_t **frame);
+static obj_t *lib_read(obj_t **frame);
 static obj_t *lib_display(obj_t **frame);
 static obj_t *lib_newline(obj_t **frame);
 
@@ -69,7 +79,12 @@ static procdef_t library[] = {
     {"scheme-report-environment", lib_report_environ},
     {"null-environment", lib_null_environ},
 
+    // Extension
+    {"load", lib_load},
+
     // IO
+    {"readline-set-prompt", lib_rl_setprompt},
+    {"read", lib_read},
     {"display", lib_display},
     {"newline", lib_newline},
 
@@ -100,6 +115,42 @@ bool_t
 lib_is_apply_proc(obj_t *proc)
 {
     return proc->as_proc.func == lib_apply;
+}
+
+void
+slib_primitive_load(obj_t **frame, const char *file_name)
+{
+    FILE *fp;
+    obj_t **new_frame;
+    obj_t *expr;
+
+    fp = fopen(file_name, "r");
+    if (!fp) {
+        perror(file_name);
+        fatal_error("(load)");
+    }
+    sparse_do_file(fp);
+    fclose(fp);
+    new_frame = frame_extend(gc_get_stack_base(), 1,
+                             FR_SAVE_PREV | FR_CONTINUE_ENV);
+    while ((expr = sparse_get_expr())) {
+        *frame_ref(frame, 0) = expr;
+        eval_frame(frame);
+    }
+}
+
+void
+slib_primitive_load_string(obj_t **frame, const char *expr_str)
+{
+    obj_t *expr;
+    obj_t **new_frame;
+    sparse_do_string(expr_str);
+    new_frame = frame_extend(gc_get_stack_base(), 1,
+                             FR_SAVE_PREV | FR_CONTINUE_ENV);
+    while ((expr = sparse_get_expr())) {
+        *frame_ref(frame, 0) = expr;
+        eval_frame(frame);
+    }
 }
 
 // Definations
@@ -363,6 +414,87 @@ lib_report_environ(obj_t **frame)
     }
     else {
         fatal_error("scheme-report-environment require 1 argument");
+    }
+}
+
+static obj_t *
+lib_load(obj_t **frame)
+{
+    // Search path?
+    obj_t *file_name;
+    size_t len;
+    const char *str;
+    FILE *fp;
+
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        file_name = *frame_ref(frame, 0);
+        str = string_unwrap(file_name);
+        // Check if there is null chars
+        for (i = 0, len = string_length(file_name); i < len; ++i) {
+            if (str[i] == '\0') {
+                fatal_error("file name contains NUL char");
+            }
+        }
+        slib_primitive_load(frame, str);
+        return unspec_wrap();
+    }
+    else {
+        fatal_error("load require 1 argument");
+    }
+}
+
+// Used in read and readline-set-prompt
+static char *lib_rl_prompt = NULL;
+
+static obj_t *
+lib_rl_setprompt(obj_t **frame)
+{
+    obj_t *prompt;
+    const char *buf;
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        if (lib_rl_prompt) {
+            free(lib_rl_prompt);
+            lib_rl_prompt = NULL;
+        }
+        prompt = *frame_ref(frame, 0);
+        buf = string_unwrap(prompt);
+        i = string_length(prompt);
+        lib_rl_prompt = malloc(i + 1);
+        memcpy(lib_rl_prompt, buf, i + 1);
+        return unspec_wrap();
+    }
+    else {
+        fatal_error("readline-set-prompt require 1 argument");
+    }
+}
+
+static obj_t *
+lib_read(obj_t **frame)
+{
+    char *line;
+    obj_t *expr;
+    LIB_PROC_HEADER();
+    if (argc == 0) {
+        while (1) {
+            // environment Hook
+            line = rl_getstr(lib_rl_prompt ? lib_rl_prompt : "");
+            if (!line)  // EOF
+                return symbol_intern(frame, "#EOF");
+            if (!*line)  // empty line
+                continue;
+            else
+                break;
+        }
+        sparse_do_string(line);
+        if (!(expr = sparse_get_expr())) {
+            fatal_error("malformed expression");
+        }
+        return expr;
+    }
+    else {
+        fatal_error("read require 0 argument");
     }
 }
 

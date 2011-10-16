@@ -20,13 +20,14 @@ typedef uint8_t bool_t;
 #define TP_PROC         3
 #define TP_FIXNUM       4
 #define TP_FLONUM       5
-#define TP_CLOSURE      6
-#define TP_NIL          7
-#define TP_VECTOR       8
-#define TP_BOOLEAN      9
-#define TP_UNSPECIFIED  10
-#define TP_ENVIRON      11
-#define TP_UDATA        12
+#define TP_STRING       6
+#define TP_CLOSURE      7
+#define TP_NIL          8
+#define TP_VECTOR       9
+#define TP_BOOLEAN      10
+#define TP_UNSPECIFIED  11
+#define TP_ENVIRON      12
+#define TP_UDATA        13
 #define TP_MAX          TP_UDATA
 
 typedef struct obj_t obj_t;
@@ -38,6 +39,11 @@ typedef struct {
 typedef struct {
     double val;
 } flonum_obj_t;
+
+typedef struct {
+    size_t length;
+    char val[1];
+} string_obj_t;
 
 typedef struct {
     obj_t *car;
@@ -88,6 +94,7 @@ struct obj_t {
         flonum_obj_t as_flonum;
         pair_obj_t as_pair;
         symbol_obj_t as_symbol;
+        string_obj_t as_string;
         proc_obj_t as_proc;
         closure_obj_t as_closure;
         vector_obj_t as_vector;
@@ -109,6 +116,8 @@ bool_t nullp(obj_t *self);
 bool_t pairp(obj_t *self);
 bool_t symbolp(obj_t *self);
 bool_t fixnump(obj_t *self);
+bool_t flonump(obj_t *self);
+bool_t stringp(obj_t *self);
 bool_t procedurep(obj_t *self);
 bool_t closurep(obj_t *self);
 bool_t vectorp(obj_t *self);
@@ -143,6 +152,12 @@ const char *symbol_unwrap(obj_t *self);
 long symbol_hash(obj_t *self);
 obj_t *symbol_intern(obj_t **frame_ptr, const char *sval);
 bool_t symbol_eq(obj_t *self, obj_t *other);
+
+// String
+obj_t *string_wrap(obj_t **frame_ptr, const char *sval, size_t len);
+const char *string_unwrap(obj_t *self);
+size_t string_length(obj_t *self);
+bool_t string_eq(obj_t *self, obj_t *other);
 
 // Proc
 obj_t *proc_wrap(obj_t **frame_ptr, sobj_funcptr_t func);

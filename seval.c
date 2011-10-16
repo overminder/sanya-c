@@ -407,6 +407,7 @@ apply_reentry:
     case TP_PROC:
     case TP_FIXNUM:
     case TP_FLONUM:
+    case TP_STRING:
     case TP_CLOSURE:
         return self;
 

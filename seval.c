@@ -4,6 +4,8 @@
 #include "seval_impl.h"
 #include "slib.h"
 
+extern void sparse_init();
+
 static obj_t *symbol_if,
              *symbol_lambda,
              *symbol_define,
@@ -14,10 +16,7 @@ static obj_t *symbol_if,
 static obj_t *eval_symbol(obj_t **frame);
 static obj_t *apply_procedure(obj_t **frame);
 
-// Currently the environment is implemented as a list.
-// e.g., (env . outer-env)
-// Where env is ((key . value) (key2 . value2) ...)
-
+// Intern some symbols for later use.
 void
 seval_init()
 {
@@ -27,7 +26,10 @@ seval_init()
     else
         initialized = 1;
 
+    // Populate the symbol table and constants
     sobj_init();
+    // Enable the parser
+    sparse_init();
 
     obj_t **frame = gc_get_stack_base();
 
@@ -51,6 +53,9 @@ seval_init()
 // *(fp)   *(fp + 1)       *(fp + 2)  ...  *(fp + size + 1)
 //  env    pref-frame-ptr   arg0      arg1    argn
 //
+// Calling convention: caller extend frame, caller push its unextended env,
+// caller may choose to keep this env (when doing define/set! things),
+// @see eval_frame() for evaluation implementation
 obj_t **frame_extend(obj_t **old_frame, size_t size,
                      enum frame_extend_flag flags)
 {
@@ -80,9 +85,13 @@ obj_t **frame_extend(obj_t **old_frame, size_t size,
         frame_set_prev(new_frame, old_frame);
     }
 
-    // Extend and save the previous environment pointer on the new frame.
     if (flags & FR_EXTEND_ENV) {
+        // Extend and save the previous environment pointer on the new frame.
         frame_set_env(new_frame, environ_wrap(new_frame, old_env));
+    }
+    else if (flags & FR_CONTINUE_ENV) {
+        // Or just using the previous environment.
+        frame_set_env(new_frame, old_env);
     }
 
     return new_frame;
@@ -121,6 +130,7 @@ frame_ref(obj_t **frame, long index)
 
 // main entrance for eval.
 // For tail's purpose, eval-related things are all placed here.
+// @see frame_extend() for frame layout information and calling convention.
 obj_t *
 eval_frame(obj_t **frame)
 {
@@ -154,7 +164,7 @@ tailcall:
                 {
                     // start to evaluate the predicate.
                     obj_t **pred_frame = frame_extend(
-                            frame, 1, FR_EXTEND_ENV | FR_SAVE_PREV);
+                            frame, 1, FR_CONTINUE_ENV | FR_SAVE_PREV);
                     *frame_ref(pred_frame, 0) = pred;
                     pred = eval_frame(pred_frame);
                 }
@@ -178,7 +188,7 @@ tailcall:
                     {
                         // Get the value of the expression before binding.
                         obj_t **expr_frame = frame_extend(
-                                frame, 1, FR_EXTEND_ENV | FR_SAVE_PREV);
+                                frame, 1, FR_CONTINUE_ENV | FR_SAVE_PREV);
                         *frame_ref(expr_frame, 0) = x;
                         x = eval_frame(expr_frame);
                     }
@@ -188,7 +198,7 @@ tailcall:
                     x = pair_cdr(w);
                     w = pair_car(w);
                     v = pair_cdr(cdr);
-                    x = closure_wrap(frame, frame_env(frame_prev(frame)),
+                    x = closure_wrap(frame, frame_env(frame),
                                      x, v);
                 }
                 else {
@@ -198,7 +208,7 @@ tailcall:
                 // Definitely a hack .... Should never try to unify
                 // gc-root/env/frame without really knowing what
                 // I'm doing.....
-                environ_def(frame, frame_env(frame_prev(frame)), w, x);
+                environ_def(frame, frame_env(frame), w, x);
                 return unspec_wrap();
             }
             else if (car == symbol_set) {
@@ -210,11 +220,11 @@ tailcall:
                 {
                     // Get the value of the expression before binding.
                     obj_t **expr_frame = frame_extend(
-                            frame, 1, FR_EXTEND_ENV | FR_SAVE_PREV);
+                            frame, 1, FR_CONTINUE_ENV | FR_SAVE_PREV);
                     *frame_ref(expr_frame, 0) = x;
                     x = eval_frame(expr_frame);
                 }
-                environ_set(frame_env(frame_prev(frame)), w, x);
+                environ_set(frame_env(frame), w, x);
                 return unspec_wrap();
             }
             else if (car == symbol_begin) {
@@ -225,7 +235,7 @@ tailcall:
                         break;
                     }
                     obj_t **expr_frame = frame_extend(frame, 1,
-                            FR_SAVE_PREV | FR_EXTEND_ENV);
+                            FR_SAVE_PREV | FR_CONTINUE_ENV);
                     *frame_ref(expr_frame, 0) = pair_car(iter);
                     eval_frame(expr_frame);
                 }
@@ -260,11 +270,11 @@ tailcall:
             obj_t *orig_env = frame_env(frame);
             long argc;
             long i;
-            bool_t needs_eval = 1;
+            bool_t args_need_eval = 1;
             {
                 // Get the procedure/closure
                 obj_t **proc_frame = frame_extend(frame, 1,
-                        FR_SAVE_PREV | FR_EXTEND_ENV);
+                        FR_SAVE_PREV | FR_CONTINUE_ENV);
                 *frame_ref(proc_frame, 0) = car;
                 proc = eval_frame(proc_frame);
 
@@ -298,7 +308,9 @@ apply_reentry:
 
             // -- 2: move each item into evaluatin position and eval.
             // Note that we are evaluating in reversed order (right to left)
-            if (needs_eval) {
+            // If we come here from the special apply proc,
+            // args_need_eval will be false since they are already evaluated.
+            if (args_need_eval) {
                 for (i = 0; i < argc; ++i) {
                     // Evaluate this argument on a new frame
                     obj_t **arg_frame = frame_extend(frame, 1, FR_CLEAR_SLOTS);
@@ -325,17 +337,24 @@ apply_reentry:
                     // Is c-procedure -- just evaluate it.
                     // Note that we will treat apply/eval differently.
                     if (lib_is_eval_proc(proc)) {
+                        // Special case for (eval expr env)
                         if (argc != 2) {
                             fatal_error("eval should have 2 argument");
                         }
                         obj_t *expr = *frame_ref(frame, 1);
                         obj_t *environ = *frame_ref(frame, 0);
-                        frame = orig_frame;
+                        frame = frame_extend(orig_frame, 1,
+                                FR_CLEAR_SLOTS | FR_SAVE_PREV);
+                        // Must create a new frame with the environ
+                        // since we should go back to the origin environ
+                        // later, which could only done by creating a
+                        // new frame to hold the new environ.
                         *frame_ref(frame, 0) = expr;
                         frame_set_env(frame, environ);
                         goto tailcall;
                     }
                     else if (lib_is_apply_proc(proc)) {
+                        // Special case for (apply proc args)
                         if (argc != 2) {
                             fatal_error("apply should have 2 arguments");
                         }
@@ -344,7 +363,7 @@ apply_reentry:
                         frame = orig_frame;
                         --frame;
                         *frame = proc;
-                        needs_eval = 0;
+                        args_need_eval = 0;  // args are already evaluated
                         goto apply_reentry;
                     }
                     return apply_procedure(frame);

@@ -164,7 +164,10 @@ enum environ_lookup_flag {
     EL_DONT_LOOK_OUTER,
     EL_LOOK_OUTER
 };
-
+// Implementation details:
+//   Currently the environment is implemented as a list.
+//   e.g., (env . outer-env)
+//   Where env is ((key . value) (key2 . value2) ...)
 obj_t *environ_wrap(obj_t **frame_ptr, obj_t *outer);
 obj_t *environ_set(obj_t *self, obj_t *key, obj_t *val);
 obj_t *environ_lookup(obj_t *self, obj_t *key, enum environ_lookup_flag);

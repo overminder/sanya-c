@@ -5,8 +5,9 @@
 #include "seval.h"
 #include "sgc.h"
 
-extern obj_t *scm_parse_string(char *);
-extern obj_t *scm_parse_file(FILE *);
+extern void sparse_do_string(char *);
+extern void sparse_do_file(FILE *);
+extern obj_t *sparse_get_expr();
 
 int g_argc;
 char **g_argv;
@@ -14,32 +15,26 @@ char **g_argv;
 static void
 repl()
 {
-    obj_t *expr;
+    obj_t *expr, *retval;
     char *line;
     obj_t **frame = frame_extend(gc_get_stack_base(), 1,
                                  FR_SAVE_PREV | FR_EXTEND_ENV);
-
     while (1) {
-        line = rl_getstr(">>> ");
-        if (!line)
-            break;
-
-        obj_t **ext_frame = frame_extend(frame, 1,
-                                         FR_SAVE_PREV | FR_EXTEND_ENV);
-        expr = scm_parse_string(line);
-        if (!expr) {
-            puts("");
-            continue;
+        if (!(expr = sparse_get_expr())) {
+            line = rl_getstr(">>> ");
+            if (!line)
+                break;
+            sparse_do_string(line);
+            if (!(expr = sparse_get_expr())) {
+                continue;
+            }
         }
-
-        *frame_ref(ext_frame, 0) = expr;
-        expr = eval_frame(ext_frame);
-
-        if (get_type(expr) != TP_UNSPECIFIED) {
-            print_repr(expr, stdout);
+        *frame_ref(frame, 0) = expr;
+        retval = eval_frame(frame);
+        if (get_type(retval) != TP_UNSPECIFIED) {
+            print_repr(retval, stdout);
             puts("");
         }
-
         if (gc_want_collect())
             gc_collect(frame);
     }
@@ -53,10 +48,12 @@ run_file()
                                  FR_SAVE_PREV | FR_EXTEND_ENV);
 
     FILE *fp = fopen(g_argv[1], "r");
-    expr = scm_parse_file(fp);
+    sparse_do_file(fp);
     fclose(fp);
-    *frame_ref(frame, 0) = expr;
-    eval_frame(frame);
+    while ((expr = sparse_get_expr())) {
+        *frame_ref(frame, 0) = expr;
+        eval_frame(frame);
+    }
 }
 
 

@@ -1,5 +1,5 @@
 # automatically generated from .pymakegen_v2.conf
-# timestamp: 1318704083.996586
+# timestamp: 1318742189.57952
 # handler_namespaces: ['root', handler.flexbison, handler.gcc]
 
 flexbison_BISON=bison
@@ -11,41 +11,18 @@ gcc_INCLUDES=-I./
 gcc_LDFLAGS=-lreadline -ggdb3 -O0
 gcc_TARGET=omscm-c
 
-all : pgen/scm_token.flex.h pgen/scm_token.flex.c  \
-	    pgen/scm_syntax.bison.h pgen/scm_syntax.bison.c $(gcc_TARGET)
+all : sparse/scm_token.flex.h sparse/scm_token.flex.c  \
+	    sparse/scm_syntax.bison.h sparse/scm_syntax.bison.c  \
+	    $(gcc_TARGET)
 	
 $(gcc_TARGET) : sobj.o main.o seval.o sgc.o slib.o  \
-	    pgen/scm_token.flex.o pgen/scm_syntax.bison.o
+	    sparse/scm_token.flex.o sparse/scm_syntax.bison.o
 	$(gcc_CC) $(gcc_LDFLAGS) sobj.o main.o seval.o sgc.o slib.o  \
-	    pgen/scm_token.flex.o pgen/scm_syntax.bison.o -o $(gcc_TARGET)
+	    sparse/scm_token.flex.o sparse/scm_syntax.bison.o -o  \
+	    $(gcc_TARGET)
 
 main.o : main.c sgc.h sobj.h rl.h seval.h sobj.h
 	$(gcc_CC) $(gcc_CFLAGS) main.c $(gcc_INCLUDES) -o main.o
-
-pgen/scm_syntax.bison.c : pgen/scm_syntax.y
-	$(flexbison_BISON) -o pgen/scm_syntax.bison.c  \
-	    pgen/scm_syntax.y
-
-pgen/scm_syntax.bison.h : pgen/scm_syntax.y
-	$(flexbison_BISON) -o /dev/null pgen/scm_syntax.y  \
-	    --defines=pgen/scm_syntax.bison.h
-
-pgen/scm_syntax.bison.o : pgen/scm_syntax.bison.c  \
-	    pgen/scm_token.flex.h pgen/obj_api.h sgc.h sobj.h sobj.h
-	$(gcc_CC) $(gcc_CFLAGS) pgen/scm_syntax.bison.c  \
-	    $(gcc_INCLUDES) -o pgen/scm_syntax.bison.o
-
-pgen/scm_token.flex.c : pgen/scm_token.lex
-	$(flexbison_FLEX) -o pgen/scm_token.flex.c pgen/scm_token.lex
-
-pgen/scm_token.flex.h : pgen/scm_token.lex
-	$(flexbison_FLEX) --header-file=pgen/scm_token.flex.h -o  \
-	    /dev/null pgen/scm_token.lex
-
-pgen/scm_token.flex.o : pgen/scm_token.flex.c  \
-	    pgen/scm_syntax.bison.h pgen/obj_api.h sgc.h sobj.h sobj.h
-	$(gcc_CC) $(gcc_CFLAGS) pgen/scm_token.flex.c $(gcc_INCLUDES)  \
-	    -o pgen/scm_token.flex.o
 
 seval.o : seval.c sgc.h sobj.h seval_impl.h slib.h sobj.h  \
 	    seval.h sobj.h
@@ -61,10 +38,36 @@ slib.o : slib.c sgc.h sobj.h seval_impl.h seval.h sobj.h slib.h \
 sobj.o : sobj.c sgc.h sobj.h sobj.h
 	$(gcc_CC) $(gcc_CFLAGS) sobj.c $(gcc_INCLUDES) -o sobj.o
 
+sparse/scm_syntax.bison.c : sparse/scm_syntax.y
+	$(flexbison_BISON) -o sparse/scm_syntax.bison.c  \
+	    sparse/scm_syntax.y
+
+sparse/scm_syntax.bison.h : sparse/scm_syntax.y
+	$(flexbison_BISON) -o /dev/null sparse/scm_syntax.y  \
+	    --defines=sparse/scm_syntax.bison.h
+
+sparse/scm_syntax.bison.o : sparse/scm_syntax.bison.c  \
+	    sparse/scm_token.flex.h sparse/obj_api.h sgc.h sobj.h sobj.h
+	$(gcc_CC) $(gcc_CFLAGS) sparse/scm_syntax.bison.c  \
+	    $(gcc_INCLUDES) -o sparse/scm_syntax.bison.o
+
+sparse/scm_token.flex.c : sparse/scm_token.lex
+	$(flexbison_FLEX) -o sparse/scm_token.flex.c  \
+	    sparse/scm_token.lex
+
+sparse/scm_token.flex.h : sparse/scm_token.lex
+	$(flexbison_FLEX) --header-file=sparse/scm_token.flex.h -o  \
+	    /dev/null sparse/scm_token.lex
+
+sparse/scm_token.flex.o : sparse/scm_token.flex.c  \
+	    sparse/obj_api.h sgc.h sobj.h sobj.h sparse/scm_syntax.bison.h
+	$(gcc_CC) $(gcc_CFLAGS) sparse/scm_token.flex.c  \
+	    $(gcc_INCLUDES) -o sparse/scm_token.flex.o
+
 clean : 
-	rm -rf pgen/scm_token.flex.h pgen/scm_token.flex.c  \
-	    pgen/scm_syntax.bison.h pgen/scm_syntax.bison.c 
+	rm -rf sparse/scm_token.flex.h sparse/scm_token.flex.c  \
+	    sparse/scm_syntax.bison.h sparse/scm_syntax.bison.c 
 	 rm -rf  \
-	    sobj.o main.o seval.o sgc.o slib.o pgen/scm_token.flex.o  \
-	    pgen/scm_syntax.bison.o
+	    sobj.o main.o seval.o sgc.o slib.o sparse/scm_token.flex.o  \
+	    sparse/scm_syntax.bison.o
 .PHONY : clean

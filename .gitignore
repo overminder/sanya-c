@@ -1,3 +1,5 @@
 .*.swp
 *.o
 *-c
+*.bison.*
+*.flex.*

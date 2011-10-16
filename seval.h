@@ -7,7 +7,8 @@ enum frame_extend_flag {
     FR_DEFAULT = 0,
     FR_CLEAR_SLOTS = 1,
     FR_SAVE_PREV = 2,
-    FR_EXTEND_ENV = 4
+    FR_EXTEND_ENV = 4,
+    FR_CONTINUE_ENV = 8
 };
 
 void seval_init();

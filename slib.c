@@ -22,11 +22,18 @@ static obj_t *lib_lessthan(obj_t **frame);
 static obj_t *lib_cons(obj_t **frame);
 static obj_t *lib_car(obj_t **frame);
 static obj_t *lib_cdr(obj_t **frame);
+static obj_t *lib_set_car(obj_t **frame);
+static obj_t *lib_set_cdr(obj_t **frame);
 
 static obj_t *lib_make_vector(obj_t **frame);
 static obj_t *lib_vector_length(obj_t **frame);
 static obj_t *lib_vector_ref(obj_t **frame);
 static obj_t *lib_vector_set(obj_t **frame);
+
+static obj_t *lib_hash(obj_t **frame);
+static obj_t *lib_symbol2string(obj_t **frame);
+static obj_t *lib_string2symbol(obj_t **frame);
+static obj_t *lib_gensym(obj_t **frame);
 
 static obj_t *lib_nullp(obj_t **frame);
 static obj_t *lib_pairp(obj_t **frame);
@@ -37,7 +44,10 @@ static obj_t *lib_booleanp(obj_t **frame);
 static obj_t *lib_unspecp(obj_t **frame);
 static obj_t *lib_eofobjp(obj_t **frame);
 
+static obj_t *lib_eqp(obj_t **frame);
+
 static obj_t *lib_rtinfo(obj_t **frame);
+static obj_t *lib_dogc(obj_t **frame);
 static obj_t *lib_eval(obj_t **frame);
 static obj_t *lib_apply(obj_t **frame);
 static obj_t *lib_null_environ(obj_t **frame);
@@ -60,12 +70,20 @@ static procdef_t library[] = {
     {"cons", lib_cons},
     {"car", lib_car},
     {"cdr", lib_cdr},
+    {"set-car!", lib_set_car},
+    {"set-cdr!", lib_set_cdr},
 
     // Vector
     {"make-vector", lib_make_vector},
     {"vector-length", lib_vector_length},
     {"vector-ref", lib_vector_ref},
     {"vector-set!", lib_vector_set},
+
+    // Symbol/String
+    {"hash", lib_hash},
+    {"symbol->string", lib_symbol2string},
+    {"string->symbol", lib_string2symbol},
+    {"gensym", lib_gensym},
 
     // Type predicates
     {"null?", lib_nullp},
@@ -77,7 +95,11 @@ static procdef_t library[] = {
     {"eof?", lib_eofobjp},
     {"unspecified?", lib_unspecp},
 
+    // Equality
+    {"eq?", lib_eqp},
+
     // Runtime Reflection
+    {"gc", lib_dogc},
     {"runtime-info", lib_rtinfo},
     {"eval", lib_eval},
     {"apply", lib_apply},
@@ -243,6 +265,38 @@ lib_cdr(obj_t **frame)
 }
 
 static obj_t *
+lib_set_car(obj_t **frame)
+{
+    obj_t *pair, *new_car;
+    LIB_PROC_HEADER();
+    if (argc == 2) {
+        pair = *frame_ref(frame, 1);
+        new_car = *frame_ref(frame, 0);
+        pair_set_car(pair, new_car);
+        return unspec_wrap();
+    }
+    else {
+        fatal_error("set-car! require 2 arguments");
+    }
+}
+
+static obj_t *
+lib_set_cdr(obj_t **frame)
+{
+    obj_t *pair, *new_cdr;
+    LIB_PROC_HEADER();
+    if (argc == 2) {
+        pair = *frame_ref(frame, 1);
+        new_cdr = *frame_ref(frame, 0);
+        pair_set_cdr(pair, new_cdr);
+        return unspec_wrap();
+    }
+    else {
+        fatal_error("set-cdr! require 2 arguments");
+    }
+}
+
+static obj_t *
 lib_make_vector(obj_t **frame)
 {
     LIB_PROC_HEADER();
@@ -304,6 +358,110 @@ lib_vector_set(obj_t **frame)
     }
     else {
         fatal_error("vector-set! require 3 arguments");
+    }
+}
+
+static obj_t *
+lib_symbol2string(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    const char *str;
+    obj_t *sym;
+    if (argc == 1) {
+        sym = *frame_ref(frame, 0);
+        str = symbol_unwrap(sym);
+        return string_wrap(frame, str, strlen(str));
+    }
+    else {
+        fatal_error("symbol->string require 1 argument");
+    }
+}
+
+static obj_t *
+lib_hash(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    long hval;
+    long moder_val;
+    obj_t *a, *moder;
+    union {
+        long lval;
+        double dval;
+    } double2long;
+
+    if (argc == 2) {
+        a = *frame_ref(frame, 1);
+        moder = *frame_ref(frame, 0);
+        moder_val = fixnum_unwrap(moder);
+
+        switch (get_type(a)) {
+        case TP_PAIR:
+            hval = (long)a;
+            break;
+
+        case TP_SYMBOL:
+            hval = symbol_hash(a);
+            break;
+
+        case TP_PROC:
+            hval = (long)a;
+            break;
+
+        case TP_FIXNUM:
+            hval = fixnum_unwrap(a);
+            break;
+
+        case TP_FLONUM:
+            double2long.dval = flonum_unwrap(a);
+            hval = double2long.lval;
+            break;
+
+        case TP_STRING:
+        case TP_CLOSURE:
+        case TP_NIL:
+        case TP_VECTOR:
+        case TP_BOOLEAN:
+        case TP_UNSPECIFIED:
+        case TP_ENVIRON:
+        case TP_UDATA:
+        case TP_EOFOBJ:
+            hval = (long)a;
+            break;
+        }
+        return fixnum_wrap(frame, hval % moder_val);
+    }
+    else {
+        fatal_error("hash require 2 arguments");
+    }
+}
+
+static obj_t *
+lib_string2symbol(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    obj_t *str;
+    if (argc == 1) {
+        str = *frame_ref(frame, 0);
+        return symbol_intern(frame, string_unwrap(str));
+    }
+    else {
+        fatal_error("string->symbol require 1 argument");
+    }
+}
+
+static size_t gsym_counter = 0;
+
+static obj_t *
+lib_gensym(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    char buf[128];
+    if (argc == 0) {
+        sprintf(buf, "#!@#{%ld}<>#", gsym_counter++);
+        return symbol_intern(frame, buf);
+    }
+    else {
+        fatal_error("gensym require 0 argument");
     }
 }
 
@@ -403,6 +561,81 @@ lib_eofobjp(obj_t **frame)
     }
 }
 
+static obj_t *
+lib_dogc(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    if (argc == 0) {
+        gc_collect(frame);
+        return unspec_wrap();
+    }
+    else {
+        fatal_error("gc require no arguments");
+    }
+}
+
+static obj_t *
+lib_eqp(obj_t **frame)
+{
+    obj_t *a, *b;
+    bool_t is_eq = 0;
+
+    LIB_PROC_HEADER();
+    if (argc == 2) {
+        a = *frame_ref(frame, 1);
+        b = *frame_ref(frame, 0);
+
+        if (a == b) {
+            return boolean_wrap(1);
+        }
+        if (get_type(a) != get_type(b)) {
+            return boolean_wrap(0);
+        }
+
+        switch (get_type(a)) {
+        case TP_PAIR:
+        case TP_SYMBOL:
+        case TP_PROC:
+            is_eq = 0;
+            break;
+
+        case TP_FIXNUM:
+            is_eq = fixnum_unwrap(a) == fixnum_unwrap(b);
+            break;
+
+        case TP_FLONUM:
+        case TP_STRING:
+        case TP_CLOSURE:
+            is_eq = 0;
+            break;
+
+        case TP_NIL:
+            NOT_REACHED();
+
+        case TP_VECTOR:
+        case TP_BOOLEAN:
+            is_eq = 0;
+            break;
+
+        case TP_UNSPECIFIED:
+            NOT_REACHED();
+            break;
+
+        case TP_ENVIRON:
+        case TP_UDATA:
+            is_eq = 0;
+            break;
+
+        case TP_EOFOBJ:
+            NOT_REACHED();
+            break;
+        }
+        return boolean_wrap(is_eq);
+    }
+    else {
+        fatal_error("eq? require 2 arguments");
+    }
+}
 
 static obj_t *
 lib_rtinfo(obj_t **frame)

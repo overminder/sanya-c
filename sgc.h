@@ -26,6 +26,7 @@ typedef obj_t * (*gc_visitor_t) (obj_t *);
 typedef void (*gc_finalizer_t) (obj_t *);
 
 void sgc_init();
+void sgc_fini();
 
 void gc_set_enabled(bool_t);
 bool_t gc_is_enabled();

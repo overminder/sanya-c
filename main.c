@@ -52,6 +52,8 @@ main(int argc, char **argv)
         repl();
     else if (argc == 2)
         run_file();
+
+    sgc_fini();
     return 0;
 }
 

@@ -34,6 +34,20 @@ sgc_init()
     sp = stack + STACK_SIZE;
 }
 
+void sgc_fini()
+{
+    obj_t *victim, *self;
+    self = gc_head;
+    while (self) {
+        victim = self;
+        self = self->gc_next;
+        finalizer_types[get_type(victim)](victim);
+    }
+    gc_head = NULL;
+
+    free(stack);
+}
+
 void
 gc_set_enabled(bool_t p)
 {

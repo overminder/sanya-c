@@ -47,6 +47,7 @@ sobj_init()
     gc_register_type(TP_BOOLEAN, default_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_UNSPECIFIED, default_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_ENVIRON, environ_gc_visitor, default_gc_finalizer);
+    gc_register_type(TP_EOFOBJ, default_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_UDATA, default_gc_visitor, default_gc_finalizer);
 
     // Symbol table

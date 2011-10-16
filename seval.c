@@ -205,9 +205,6 @@ tailcall:
                     fatal_error("define -- first argument is neither a "
                                 "symbol nor a pair");
                 }
-                // Definitely a hack .... Should never try to unify
-                // gc-root/env/frame without really knowing what
-                // I'm doing.....
                 environ_def(frame, frame_env(frame), w, x);
                 return unspec_wrap();
             }
@@ -330,7 +327,10 @@ apply_reentry:
             // Creating new frame and setting up environment.
             // Then do the actual application (two cases)
             {
+                // Since the library function may require the current environ
+                // e.g., (load "filename.scm"), we must attach the environ.
                 frame = frame_extend(frame, 0, FR_CLEAR_SLOTS);
+                frame_set_env(frame, orig_env);
                 frame_set_prev(frame, orig_frame);
 
                 if (procedurep(proc)) {

@@ -6,9 +6,8 @@
 #include "seval_impl.h"
 
 // From sparse/scm_*
-extern void sparse_do_string(const char *);
-extern void sparse_do_file(FILE *);
-extern obj_t *sparse_get_expr();
+extern obj_t *sparse_do_string(const char *);
+extern obj_t *sparse_do_file(FILE *);
 
 typedef struct {
     const char *name;
@@ -117,40 +116,45 @@ lib_is_apply_proc(obj_t *proc)
     return proc->as_proc.func == lib_apply;
 }
 
+static
+void execute_expr_list(obj_t **frame, obj_t *prog)
+{
+    obj_t *expr;
+    obj_t **prog_frame, **run_frame;
+
+    prog_frame = frame_extend(frame, 1,
+                              FR_SAVE_PREV | FR_CONTINUE_ENV);
+
+    for (expr = prog; !nullp(expr); expr = pair_cdr(expr)) {
+        *frame_ref(prog_frame, 0) = expr;
+        run_frame = frame_extend(prog_frame, 1,
+                                 FR_SAVE_PREV | FR_CONTINUE_ENV);
+        *frame_ref(run_frame, 0) = pair_car(expr);
+        eval_frame(run_frame);
+    }
+}
+
 void
 slib_primitive_load(obj_t **frame, const char *file_name)
 {
     FILE *fp;
-    obj_t **new_frame;
-    obj_t *expr;
+    obj_t *prog;
 
     fp = fopen(file_name, "r");
     if (!fp) {
         perror(file_name);
         fatal_error("(load)");
     }
-    sparse_do_file(fp);
+    prog = sparse_do_file(fp);
     fclose(fp);
-    new_frame = frame_extend(gc_get_stack_base(), 1,
-                             FR_SAVE_PREV | FR_CONTINUE_ENV);
-    while ((expr = sparse_get_expr())) {
-        *frame_ref(frame, 0) = expr;
-        eval_frame(frame);
-    }
+
+    execute_expr_list(frame, prog);
 }
 
 void
 slib_primitive_load_string(obj_t **frame, const char *expr_str)
 {
-    obj_t *expr;
-    obj_t **new_frame;
-    sparse_do_string(expr_str);
-    new_frame = frame_extend(gc_get_stack_base(), 1,
-                             FR_SAVE_PREV | FR_CONTINUE_ENV);
-    while ((expr = sparse_get_expr())) {
-        *frame_ref(frame, 0) = expr;
-        eval_frame(frame);
-    }
+    execute_expr_list(frame, sparse_do_string(expr_str));
 }
 
 // Definations
@@ -487,11 +491,11 @@ lib_read(obj_t **frame)
             else
                 break;
         }
-        sparse_do_string(line);
-        if (!(expr = sparse_get_expr())) {
+        expr = sparse_do_string(line);
+        if (!expr) {
             fatal_error("malformed expression");
         }
-        return expr;
+        return pair_car(expr);
     }
     else {
         fatal_error("read require 0 argument");

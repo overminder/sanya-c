@@ -50,41 +50,38 @@ sparse_init()
 }
 
 obj_t *
-sparse_get_expr()
-{
-    obj_t *retval;
-    if (!prog_expr || nullp(prog_expr)) {
-        return NULL;
-    }
-    else {
-        retval = pair_car(prog_expr);
-        prog_expr = pair_cdr(prog_expr);
-        *prog_frame = prog_expr;
-        return retval;
-    }
-}
-
-void
 sparse_do_string(char *s)
 {
+    obj_t *retval;
     YY_BUFFER_STATE buf;
+
     buf = yy_scan_string(s);
     yy_switch_to_buffer(buf);
     gc_set_enabled(0);
     yyparse();
-    *prog_frame = prog_expr;
     gc_set_enabled(1);
     yy_delete_buffer(buf);
+
+    retval = prog_expr;
+    prog_expr = NULL;
+    return retval;
 }
 
-void
+obj_t *
 sparse_do_file(FILE *fp)
 {
-    yyin = fp;
+    obj_t *retval;
+    YY_BUFFER_STATE buf;
+
+    buf = yy_create_buffer(fp, YY_BUF_SIZE);
+    yy_switch_to_buffer(buf);
     gc_set_enabled(0);
     yyparse();
-    *prog_frame = prog_expr;
     gc_set_enabled(1);
-    yyin = NULL;
+    yy_delete_buffer(buf);
+
+    retval = prog_expr;
+    prog_expr = NULL;
+    return retval;
 }
 

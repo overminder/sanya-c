@@ -10,6 +10,7 @@ static header_obj_t w_nil;
 static header_obj_t w_true;
 static header_obj_t w_false;
 static header_obj_t w_unspec;
+static header_obj_t w_eofobj;
 static obj_t *symbol_table = NULL;
 
 static obj_t *default_gc_visitor(obj_t *self);
@@ -32,6 +33,7 @@ sobj_init()
     w_true.ob_type = TP_BOOLEAN;
     w_false.ob_type = TP_BOOLEAN;
     w_unspec.ob_type = TP_UNSPECIFIED;
+    w_eofobj.ob_type = TP_EOFOBJ;
 
     gc_register_type(TP_PAIR, pair_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_SYMBOL, default_gc_visitor, default_gc_finalizer);
@@ -75,6 +77,7 @@ get_typename(obj_t *self)
         case TP_BOOLEAN: return "boolean";
         case TP_UNSPECIFIED: return "unspecified";
         case TP_UDATA: return "udata";
+        case TP_EOFOBJ: return "eof";
     }
     NOT_REACHED();
 }
@@ -175,6 +178,10 @@ print_repr(obj_t *self, FILE *stream)
         fprintf(stream, "#<user-data>");
         break;
 
+    case TP_EOFOBJ:
+        fprintf(stream, "#EOF");
+        break;
+
     default:
         NOT_REACHED();
     }
@@ -234,6 +241,31 @@ vectorp(obj_t *self)
     return get_type(self) == TP_VECTOR;
 }
 
+bool_t
+booleanp(obj_t *self)
+{
+    return get_type(self) == TP_BOOLEAN;
+}
+
+bool_t
+unspecp(obj_t *self)
+{
+    return get_type(self) == TP_UNSPECIFIED;
+}
+
+bool_t
+environp(obj_t *self)
+{
+    return get_type(self) == TP_ENVIRON;
+}
+
+bool_t
+eofobjp(obj_t *self)
+{
+    return get_type(self) == TP_EOFOBJ;
+}
+
+
 void
 fatal_error(const char *msg)
 {
@@ -261,6 +293,11 @@ unspec_wrap()
     return (obj_t *)&w_unspec;
 }
 
+obj_t *
+eofobj_wrap()
+{
+    return (obj_t *)&w_eofobj;
+}
 
 // Fixnum
 obj_t *

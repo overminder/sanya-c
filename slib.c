@@ -33,6 +33,9 @@ static obj_t *lib_pairp(obj_t **frame);
 static obj_t *lib_symbolp(obj_t **frame);
 static obj_t *lib_integerp(obj_t **frame);
 static obj_t *lib_vectorp(obj_t **frame);
+static obj_t *lib_booleanp(obj_t **frame);
+static obj_t *lib_unspecp(obj_t **frame);
+static obj_t *lib_eofobjp(obj_t **frame);
 
 static obj_t *lib_rtinfo(obj_t **frame);
 static obj_t *lib_eval(obj_t **frame);
@@ -70,6 +73,9 @@ static procdef_t library[] = {
     {"symbol?", lib_symbolp},
     {"integer?", lib_integerp},
     {"vector?", lib_vectorp},
+    {"boolean?", lib_booleanp},
+    {"eof?", lib_eofobjp},
+    {"unspecified?", lib_unspecp},
 
     // Runtime Reflection
     {"runtime-info", lib_rtinfo},
@@ -362,6 +368,43 @@ lib_vectorp(obj_t **frame)
 }
 
 static obj_t *
+lib_booleanp(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        return boolean_wrap(booleanp(*frame_ref(frame, 0)));
+    }
+    else {
+        fatal_error("boolean? require 1 argument");
+    }
+}
+
+static obj_t *
+lib_unspecp(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        return boolean_wrap(unspecp(*frame_ref(frame, 0)));
+    }
+    else {
+        fatal_error("unspecified? require 1 argument");
+    }
+}
+
+static obj_t *
+lib_eofobjp(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        return boolean_wrap(eofobjp(*frame_ref(frame, 0)));
+    }
+    else {
+        fatal_error("eof? require 1 argument");
+    }
+}
+
+
+static obj_t *
 lib_rtinfo(obj_t **frame)
 {
     LIB_PROC_HEADER();
@@ -485,7 +528,7 @@ lib_read(obj_t **frame)
             // environment Hook
             line = rl_getstr(lib_rl_prompt ? lib_rl_prompt : "");
             if (!line)  // EOF
-                return symbol_intern(frame, "#EOF");
+                return eofobj_wrap();
             if (!*line)  // empty line
                 continue;
             else

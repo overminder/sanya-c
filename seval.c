@@ -419,6 +419,7 @@ apply_reentry:
     case TP_BOOLEAN:
     case TP_UNSPECIFIED:
     case TP_UDATA:
+    case TP_EOFOBJ:
         return self;
     }
     NOT_REACHED();

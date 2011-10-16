@@ -27,7 +27,8 @@ typedef uint8_t bool_t;
 #define TP_BOOLEAN      10
 #define TP_UNSPECIFIED  11
 #define TP_ENVIRON      12
-#define TP_UDATA        13
+#define TP_EOFOBJ       13
+#define TP_UDATA        14
 #define TP_MAX          TP_UDATA
 
 typedef struct obj_t obj_t;
@@ -121,7 +122,10 @@ bool_t stringp(obj_t *self);
 bool_t procedurep(obj_t *self);
 bool_t closurep(obj_t *self);
 bool_t vectorp(obj_t *self);
+bool_t booleanp(obj_t *self);
+bool_t unspecp(obj_t *self);
 bool_t environp(obj_t *self);
+bool_t eofobjp(obj_t *self);
 
 // Simple debug func
 // @see NOT_REACHED
@@ -131,6 +135,7 @@ void fatal_error(const char *msg) __attribute__((noreturn));
 obj_t *nil_wrap();
 obj_t *boolean_wrap(bool_t bval);
 obj_t *unspec_wrap();
+obj_t *eofobj_wrap();
 
 // Fixnum
 obj_t *fixnum_wrap(obj_t **frame_ptr, long ival);

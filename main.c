@@ -15,9 +15,16 @@ repl()
         "(define *env* (null-environment 5))"
         "(readline-set-prompt \">>> \")"
         "(define (repl)"
-        "  (display (eval (read) *env*))"
-        "  (newline)"
-        "  (repl))"
+        "  (define expr (read))"
+        "  (if (eof? expr)"
+        "    (begin"
+        "      (display \"received eof, bye.\")"
+        "      (newline))"
+        "    (begin"
+        "      (define result (eval expr *env*))"
+        "      (display (if (unspecified? result) \"OK.\" result))"
+        "      (newline)"
+        "      (repl))))"
         "(repl)";
     obj_t **frame = frame_extend(gc_get_stack_base(), 1,
                                  FR_SAVE_PREV | FR_EXTEND_ENV);

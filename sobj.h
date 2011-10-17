@@ -20,16 +20,19 @@ typedef uint8_t bool_t;
 #define TP_PROC         3
 #define TP_FIXNUM       4
 #define TP_FLONUM       5
+
 #define TP_STRING       6
 #define TP_CLOSURE      7
 #define TP_NIL          8
 #define TP_VECTOR       9
 #define TP_BOOLEAN      10
+
 #define TP_UNSPECIFIED  11
 #define TP_ENVIRON      12
 #define TP_EOFOBJ       13
 #define TP_DICT         14
 #define TP_SPECFORM     15
+
 #define TP_MACRO        16
 #define TP_UDATA        17
 #define TP_MAX          TP_UDATA

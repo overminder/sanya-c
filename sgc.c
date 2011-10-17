@@ -82,7 +82,7 @@ gc_malloc(size_t size, type_t ob_type)
         res = NULL;
     }
     else {
-        res = malloc(size);
+        res = malloc(size);  // calloc will be better.
         if (res) {
             res->gc_next = gc_head;
             res->gc_marked = 0;
@@ -286,5 +286,39 @@ gc_print_stack(obj_t **frame)
         }
     }
     fprintf(stderr, "\n**************\nGC-PRINT-STACK\n\n");
+}
+
+obj_t *
+gc_find_backptr_of(obj_t *o, long nth)
+{
+    long count = 0;
+    obj_t *iter;
+    for (iter = gc_head; iter; iter = iter->gc_next) {
+        switch (get_type(iter)) {
+            case TP_PAIR:
+                if (pair_car(iter) == o)
+                    goto found;
+                if (pair_cdr(iter) == o)
+                    goto found;
+                break;
+
+            case TP_VECTOR:
+                {
+                    size_t i = 0, len = vector_length(iter);
+                    for (; i < len; ++i) {
+                        if (*vector_ref(iter, i) == o)
+                            goto found;
+                    }
+                }
+                break;
+        }
+        continue;
+found:
+        if (count >= nth)
+            return iter;
+        else
+            ++count;
+    }
+    return NULL;
 }
 

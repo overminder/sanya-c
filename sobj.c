@@ -382,17 +382,16 @@ eofobj_wrap()
 obj_t *
 fixnum_wrap(obj_t **frame, long ival)
 {
-    obj_t *self = gc_malloc(sizeof(fixnum_obj_t), TP_FIXNUM);
-#ifndef ALWAYS_COLLECT
-    if (!self) {
+#ifdef ALWAYS_COLLECT
+    gc_collect(frame);
 #endif
+    obj_t *self = gc_malloc(sizeof(fixnum_obj_t), TP_FIXNUM);
+    if (!self) {
         gc_collect(frame);
         self = gc_malloc(sizeof(fixnum_obj_t), TP_FIXNUM);
         if (!self)
             fatal_error("out of memory", frame);
-#ifndef ALWAYS_COLLECT
     }
-#endif
     self->as_fixnum.val = ival;
     return self;
 }
@@ -410,17 +409,16 @@ fixnum_unwrap(obj_t *self)
 obj_t *
 flonum_wrap(obj_t **frame, double dval)
 {
-    obj_t *self = gc_malloc(sizeof(flonum_obj_t), TP_FLONUM);
-#ifndef ALWAYS_COLLECT
-    if (!self) {
+#ifdef ALWAYS_COLLECT
+    gc_collect(frame);
 #endif
+    obj_t *self = gc_malloc(sizeof(flonum_obj_t), TP_FLONUM);
+    if (!self) {
         gc_collect(frame);
         self = gc_malloc(sizeof(flonum_obj_t), TP_FLONUM);
         if (!self)
             fatal_error("out of memory", frame);
-#ifndef ALWAYS_COLLECT
     }
-#endif
     self->as_flonum.val = dval;
     return self;
 }
@@ -440,18 +438,18 @@ flonum_unwrap(obj_t *self)
 obj_t *
 pair_wrap(obj_t **frame, obj_t *car, obj_t *cdr)
 {
-    obj_t *self = gc_malloc(sizeof(pair_obj_t), TP_PAIR);
-#ifndef ALWAYS_COLLECT
-    if (!self) {
+#ifdef ALWAYS_COLLECT
+    SGC_ROOT2(frame, car, cdr);
+    gc_collect(frame);
 #endif
+    obj_t *self = gc_malloc(sizeof(pair_obj_t), TP_PAIR);
+    if (!self) {
         SGC_ROOT2(frame, car, cdr);
         gc_collect(frame);
         self = gc_malloc(sizeof(pair_obj_t), TP_PAIR);
         if (!self)
             fatal_error("out of memory", frame);
-#ifndef ALWAYS_COLLECT
     }
-#endif
     pair_set_car(self, car);
     pair_set_cdr(self, cdr);
     return self;
@@ -521,18 +519,17 @@ pair_set_cdr(obj_t *self, obj_t *cdr)
 static obj_t *
 symbol_wrap(obj_t **frame, const char *sval)
 {
+#ifdef ALWAYS_COLLECT
+    gc_collect(frame);
+#endif
     size_t slen = strlen(sval);
     obj_t *self = gc_malloc(sizeof(symbol_obj_t) + slen, TP_SYMBOL);
-#ifndef ALWAYS_COLLECT
     if (!self) {
-#endif
         gc_collect(frame);
         self = gc_malloc(sizeof(symbol_obj_t) + slen, TP_SYMBOL);
         if (!self)
             fatal_error("out of memory", NULL);
-#ifndef ALWAYS_COLLECT
     }
-#endif
     memcpy(self->as_symbol.val, sval, slen + 1);
     self->as_symbol.hash = -1;
     return self;
@@ -611,17 +608,16 @@ symbol_eq(obj_t *self, obj_t *other)
 obj_t *
 string_wrap(obj_t **frame, const char *sval, size_t len)
 {
-    obj_t *self = gc_malloc(sizeof(string_obj_t) + len, TP_STRING);
-#ifndef ALWAYS_COLLECT
-    if (!self) {
+#ifdef ALWAYS_COLLECT
+    gc_collect(frame);
 #endif
+    obj_t *self = gc_malloc(sizeof(string_obj_t) + len, TP_STRING);
+    if (!self) {
         gc_collect(frame);
         self = gc_malloc(sizeof(string_obj_t) + len, TP_STRING);
         if (!self)
             fatal_error("out of memory", frame);
-#ifndef ALWAYS_COLLECT
     }
-#endif
     memcpy(self->as_string.val, sval, len);
     self->as_string.val[len] = '\0';
     self->as_string.length = len;
@@ -659,17 +655,16 @@ string_eq(obj_t *self, obj_t *other)
 obj_t *
 proc_wrap(obj_t **frame, sobj_funcptr_t func)
 {
-    obj_t *self = gc_malloc(sizeof(proc_obj_t), TP_PROC);
-#ifndef ALWAYS_COLLECT
-    if (!self) {
+#ifdef ALWAYS_COLLECT
+    gc_collect(frame);
 #endif
+    obj_t *self = gc_malloc(sizeof(proc_obj_t), TP_PROC);
+    if (!self) {
         gc_collect(frame);
         self = gc_malloc(sizeof(proc_obj_t), TP_PROC);
         if (!self)
             fatal_error("out of memory", frame);
-#ifndef ALWAYS_COLLECT
     }
-#endif
     self->as_proc.func = func;
     return self;
 }
@@ -686,18 +681,18 @@ proc_unwrap(obj_t *self)
 obj_t *
 closure_wrap(obj_t **frame, obj_t *env, obj_t *formals, obj_t *body)
 {
-    obj_t *self = gc_malloc(sizeof(closure_obj_t), TP_CLOSURE);
-#ifndef ALWAYS_COLLECT
-    if (!self) {
+#ifdef ALWAYS_COLLECT
+    SGC_ROOT3(frame, env, formals, body);
+    gc_collect(frame);
 #endif
+    obj_t *self = gc_malloc(sizeof(closure_obj_t), TP_CLOSURE);
+    if (!self) {
         SGC_ROOT3(frame, env, formals, body);
         gc_collect(frame);
         self = gc_malloc(sizeof(closure_obj_t), TP_CLOSURE);
         if (!self)
             fatal_error("out of memory", frame);
-#ifndef ALWAYS_COLLECT
     }
-#endif
     self->as_closure.env = env;
     self->as_closure.formals = formals;
     self->as_closure.body = body;
@@ -734,22 +729,22 @@ closure_body(obj_t *self)
 obj_t *
 vector_wrap(obj_t **frame, size_t nb_alloc, obj_t *fill)
 {
+#ifdef ALWAYS_COLLECT
+    SGC_ROOT1(frame, fill);
+    gc_collect(frame);
+#endif
     obj_t *self;
     size_t i;
     self = gc_malloc(sizeof(vector_obj_t) +
                      sizeof(obj_t *) * nb_alloc, TP_VECTOR);
-#ifndef ALWAYS_COLLECT
     if (!self) {
-#endif
         SGC_ROOT1(frame, fill);
         gc_collect(frame);
         self = gc_malloc(sizeof(vector_obj_t) +
                          sizeof(obj_t *) * nb_alloc, TP_VECTOR);
         if (!self)
             fatal_error("out of memory", frame);
-#ifndef ALWAYS_COLLECT
     }
-#endif
     self->as_vector.nb_alloc = nb_alloc;
     for (i = 0; i < nb_alloc; ++i) {
         self->as_vector.data[i] = fill;
@@ -815,18 +810,18 @@ vector_to_list(obj_t **frame, obj_t *self)
 obj_t *
 environ_wrap(obj_t **frame, obj_t *outer)
 {
-    obj_t *self = gc_malloc(sizeof(environ_obj_t), TP_ENVIRON);
-#ifndef ALWAYS_COLLECT
-    if (!self) {
+#ifdef ALWAYS_COLLECT
+    SGC_ROOT1(frame, outer);
+    gc_collect(frame);
 #endif
+    obj_t *self = gc_malloc(sizeof(environ_obj_t), TP_ENVIRON);
+    if (!self) {
         SGC_ROOT1(frame, outer);
         gc_collect(frame);
         self = gc_malloc(sizeof(environ_obj_t), TP_ENVIRON);
         if (!self)
             fatal_error("out of memory", frame);
-#ifndef ALWAYS_COLLECT
     }
-#endif
     SGC_ROOT2(frame, self, outer);
     ENV_CAR(self) = NULL;
     ENV_CDR(self) = NULL;
@@ -899,17 +894,16 @@ environ_bind(obj_t **frame, obj_t *self, obj_t *key, obj_t *value)
 obj_t *
 dict_wrap(obj_t **frame)
 {
-    obj_t *self = gc_malloc(sizeof(dict_obj_t), TP_DICT);
-#ifndef ALWAYS_COLLECT
-    if (!self) {
+#ifdef ALWAYS_COLLECT
+    gc_collect(frame);
 #endif
+    obj_t *self = gc_malloc(sizeof(dict_obj_t), TP_DICT);
+    if (!self) {
         gc_collect(frame);
         self = gc_malloc(sizeof(dict_obj_t), TP_DICT);
         if (!self)
             fatal_error("out of memory", frame);
-#ifndef ALWAYS_COLLECT
     }
-#endif
     SGC_ROOT1(frame, self);
     self->as_dict.nb_items = 0;
     self->as_dict.hash_mask = DICT_INIT_SIZE - 1;
@@ -933,20 +927,24 @@ dict_size(obj_t *self)
 static void
 dict_rehash(obj_t **frame, obj_t *self, size_t target_size)
 {
+#ifdef ALWAYS_COLLECT
+    SGC_ROOT1(frame, self);
+    gc_collect(frame);
+#endif
     // Firstly create a new dict
     obj_t *ndict = gc_malloc(sizeof(dict_obj_t), TP_DICT);
-#ifndef ALWAYS_COLLECT
     if (!ndict) {
-#endif
-        SGC_ROOT1(frame, ndict);
+        SGC_ROOT1(frame, self);
         gc_collect(frame);
         ndict = gc_malloc(sizeof(dict_obj_t), TP_DICT);
         if (!ndict)
             fatal_error("out of memory", frame);
-#ifndef ALWAYS_COLLECT
     }
-#endif
     SGC_ROOT2(frame, self, ndict);
+    // those two is for valgrind since uninitialized values
+    // may be represented as errors..
+    ndict->as_dict.nb_items = self->as_dict.nb_items;
+    ndict->as_dict.hash_mask = self->as_dict.hash_mask;
     ndict->as_dict.vec = vector_wrap(frame, target_size, nil_wrap());
     // Other fields are not important
 
@@ -1040,17 +1038,16 @@ found_entry:
 obj_t *
 specform_wrap(obj_t **frame, sobj_funcptr2_t call)
 {
-    obj_t *self = gc_malloc(sizeof(specform_obj_t), TP_SPECFORM);
-#ifndef ALWAYS_COLLECT
-    if (!self) {
+#ifdef ALWAYS_COLLECT
+    gc_collect(frame);
 #endif
+    obj_t *self = gc_malloc(sizeof(specform_obj_t), TP_SPECFORM);
+    if (!self) {
         gc_collect(frame);
         self = gc_malloc(sizeof(specform_obj_t), TP_SPECFORM);
         if (!self)
             fatal_error("out of memory", frame);
-#ifndef ALWAYS_COLLECT
     }
-#endif
     self->as_specform.call = call;
     return self;
 }
@@ -1076,18 +1073,18 @@ syntaxp(obj_t *self)
 obj_t *
 macro_wrap(obj_t **frame, obj_t *rule)
 {
-    obj_t *self = gc_malloc(sizeof(macro_obj_t), TP_MACRO);
-#ifndef ALWAYS_COLLECT
-    if (!self) {
+#ifdef ALWAYS_COLLECT
+    SGC_ROOT1(frame, rule);
+    gc_collect(frame);
 #endif
+    obj_t *self = gc_malloc(sizeof(macro_obj_t), TP_MACRO);
+    if (!self) {
         SGC_ROOT1(frame, rule);
         gc_collect(frame);
         self = gc_malloc(sizeof(macro_obj_t), TP_MACRO);
         if (!self)
             fatal_error("out of memory", frame);
-#ifndef ALWAYS_COLLECT
     }
-#endif
     self->as_macro.rules = rule;
     return self;
 }
@@ -1103,12 +1100,13 @@ macro_expand(obj_t **frame, obj_t *self, obj_t *args)
 {
     {
         // Turn the expression into an apply form.
-        // Note the inefficiency here...
+        // Note the inefficiency here and GC pitfalls...
         obj_t **gc_frame = frame;
-        SGC_ROOT2(gc_frame, args, self);
+        SGC_ROOT1(gc_frame, self);
         // (args ...) -> ((args ...))
         args = pair_wrap(gc_frame, args, nil_wrap());
 
+        SGC_ROOT1(gc_frame, args);
         // (quote (args ...))
         args = pair_wrap(gc_frame, symbol_intern(gc_frame, "quote"), args);
 
@@ -1119,6 +1117,7 @@ macro_expand(obj_t **frame, obj_t *self, obj_t *args)
         args = pair_wrap(gc_frame, self->as_macro.rules, args);
 
         // (apply rules (quote (args ...)))
+        SGC_ROOT1(gc_frame, args);
         args = pair_wrap(gc_frame, symbol_intern(gc_frame, "apply"), args);
     }
     frame = frame_extend(frame, 1, FR_SAVE_PREV | FR_CONTINUE_ENV);

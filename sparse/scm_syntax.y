@@ -5,7 +5,6 @@
 extern int yylex(void);
 extern void yyerror(const char *);
 static obj_t *prog_expr = NULL;
-static obj_t **prog_frame;
 
 %}
 
@@ -49,11 +48,6 @@ sparse_init()
         return;
     else
         initialized = 1;
-
-    prog_frame = gc_get_stack_base();
-    --prog_frame;
-    *prog_frame = NULL;
-    gc_set_stack_base(prog_frame);
 }
 
 obj_t *

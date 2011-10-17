@@ -56,4 +56,7 @@ void gc_print_stack(obj_t **frame);
 void gc_set_stack_trace_lite_base(obj_t **base);
 void gc_stack_trace_lite(obj_t **frame);
 
+// Mainly for debug, find a pointer that contains the given pointer.
+obj_t *gc_find_backptr_of(obj_t *o, long nth);
+
 #endif /* SGC_H */

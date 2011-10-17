@@ -64,6 +64,8 @@
     return T_EXPR;
 }
 
+;[^\n]* ;
+
 [\.\+\-\*\^\?a-zA-Z!<=>\_~/$%&:][\.\+\-\*\^\?a-zA-Z0-9!<=>\_~/$%&:]* {
     yylval.obj_val = make_symbol(yytext);
     return T_EXPR;

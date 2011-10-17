@@ -19,6 +19,8 @@ static obj_t *lang_set(obj_t **frame, obj_t **tailp);
 static obj_t *lang_begin(obj_t **frame, obj_t **tailp);
 static obj_t *lang_quote(obj_t **frame, obj_t **tailp);
 static obj_t *lang_quasiquote(obj_t **frame, obj_t **tailp);  // Not nested
+
+// LOL... anyway, it's usable
 static obj_t *lang_lambda_syntax(obj_t **frame, obj_t **tailp);
 
 static langdef_t specforms[] = {
@@ -320,6 +322,7 @@ lang_lambda_syntax(obj_t **frame, obj_t **tailp)
     obj_t *clos;
     *tailp = NULL;
 
+    // LOL!!!
     clos = closure_wrap(frame, frame_env(frame),
                         pair_car(expr), pair_cdr(expr));
     SGC_ROOT1(frame, clos);

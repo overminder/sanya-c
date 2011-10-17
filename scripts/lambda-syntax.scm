@@ -1,4 +1,9 @@
 
+(define testing #f)
+
+(define (caar p)
+  (car (car p)))
+
 (define (cadr p)
   (car (cdr p)))
 
@@ -27,12 +32,6 @@
         ,@body)
       ,@binding-vals)))
 
-(let ((x 1)
-      (y 2))
-  (display "testing let, (expecting 3) => ")
-  (display (+ x y))
-  (newline))
-
 (define (case->pred case-datum)
   (let ((retval (car case-datum)))
     (if (eq? retval 'else) #t
@@ -55,13 +54,6 @@
     (if (null? cases) (error "empty cond")
       (cases->if cases))))
 
-(display "testing cond, (expecting true) => ")
-(display
-  (cond
-    (#f 'false)
-    (else 'true)))
-(newline)
-
 (define letrec
   (lambda-syntax (bindings . body)
     (let ((binding-defs (bindings->defines bindings)))
@@ -74,10 +66,115 @@
     (cons `(define ,@(car bindings))
           (bindings->defines (cdr bindings)))))
 
-(display "test letrec, expecting 9 (actually it is also let*...) => ")
-(letrec ((x 9)
-         (y (lambda () x)))
-  (display (y))
-  (newline))
 
+(define (not value)
+  (if value #f #t))
+
+(define or
+  (lambda-syntax body
+    (if (null? body) #f
+      (let ((head (car body)))
+        `(if ,head ,head
+           (or ,@(cdr body)))))))
+
+
+(define and
+  (lambda-syntax body
+    (if (null? body) #t
+      (let ((head (car body))
+            (tail (cdr body)))
+        (cond
+          ((null? tail) head)
+          (head `(and ,@tail))
+          (else head))))))
+
+(define delay
+  (lambda-syntax (expr)
+    `(let ((forced #f)
+           (retval '()))
+       (lambda ()
+         (if forced retval
+           (begin
+             (set! retval ,expr)
+             (set! forced #t)
+             retval))))))
+
+(define (force expr)
+  (expr))
+
+(if testing
+  (begin
+
+    (let ((x 1)
+          (y 2))
+      (display "testing let, (expecting 3) => ")
+      (display (+ x y))
+      (newline))
+
+
+    (display "testing cond, (expecting true) => ")
+    (display
+      (cond
+        (#f 'false)
+        (else 'true)))
+    (newline)
+
+    (display "test letrec, expecting 9 (actually it is also let*...) => ")
+    (letrec ((x 9)
+             (y (lambda () x)))
+      (display (y))
+      (newline))
+
+    (display "empty or => ")
+    (display (or))
+    (newline)
+
+    (display "(or 1) => ")
+    (display (or 1))
+    (newline)
+
+    (display "(or #f) => ")
+    (display (or #f))
+    (newline)
+
+    (display "(or #f (+ 1 2)) => ")
+    (display (or #f (+ 1 2)))
+    (newline)
+
+    (display "(or #f (+ 1 2) (display 'hehe)) => ")
+    (display (or #f (+ 1 2) (display 'hehe)))
+    (newline)
+
+    (display "empty and => ")
+    (display (and))
+    (newline)
+
+    (display "(and 1) => ")
+    (display (and 1))
+    (newline)
+
+    (display "(and #f (+ 1 2)) => ")
+    (display (and #f (+ 1 2)))
+    (newline)
+
+    (display "(and #f no-such-var) => ")
+    (display (and #f no-such-var))
+    (newline)
+
+    (define test-delay
+      (delay
+        (begin
+          (newline)
+          (display "Forced!")
+          " >>")))
+
+    (display "Testing delay -- expecting one `Forced` and three >>. ")
+    (display (force test-delay))
+    (display (force test-delay))
+    (display (force test-delay))
+    (newline))
+
+  (begin
+    (display "lambda-syntax.scm loaded")
+    (newline)))
 

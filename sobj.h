@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <setjmp.h>
 
 // Simple debug macro
 // @see fatal_error
@@ -34,7 +35,8 @@ typedef uint8_t bool_t;
 #define TP_SPECFORM     15
 
 #define TP_MACRO        16
-#define TP_UDATA        17
+#define TP_ECONT        17
+#define TP_UDATA        18
 #define TP_MAX          TP_UDATA
 
 typedef struct obj_t obj_t;
@@ -98,6 +100,12 @@ typedef struct {
     obj_t *rules;  // rule implemented as closure
 } macro_obj_t;
 
+// Escaping continuation
+typedef struct {
+    void *env; 
+    obj_t *aux;
+} econt_obj_t;
+
 // 16-byte for each object...
 #define OB_HEADER \
     obj_t * gc_next; \
@@ -126,6 +134,7 @@ struct obj_t {
         dict_obj_t as_dict;
         specform_obj_t as_specform;
         macro_obj_t as_macro;
+        econt_obj_t as_econt;
     };
 };
 
@@ -138,6 +147,7 @@ const char *get_typename(obj_t *self);
 bool_t to_boolean(obj_t *self);
 void print_repr(obj_t *self, FILE *stream);
 long generic_hash(obj_t *self);
+bool_t generic_eq(obj_t *a, obj_t *b);
 
 // Type predicates, most of them are around the corresponding type's decl
 bool_t nullp(obj_t *self);
@@ -246,8 +256,18 @@ obj_t *specform_wrap(obj_t **frame, sobj_funcptr2_t call);
 bool_t specformp(obj_t *self);
 sobj_funcptr2_t specform_unwrap(obj_t *self);
 
+// Macros
 obj_t *macro_wrap(obj_t **frame, obj_t *rule);
 bool_t macrop(obj_t *self);
 obj_t *macro_expand(obj_t **frame, obj_t *self, obj_t *args);
+
+// Continuations (escaping...)
+obj_t *econt_wrap(obj_t **frame, void *env);
+bool_t continuationp(obj_t *self);
+bool_t econtp(obj_t *self);
+jmp_buf *econt_getenv(obj_t *self);
+void econt_clear(obj_t *self);
+obj_t *econt_getaux(obj_t *self);
+void econt_putaux(obj_t *self, obj_t *thing);
 
 #endif /* SOBJ_H */

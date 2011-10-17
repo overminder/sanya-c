@@ -1,6 +1,8 @@
 
 (define testing #f)
 
+(define call/ec call-with-escaping-continuation)
+
 (define (caar p)
   (car (car p)))
 

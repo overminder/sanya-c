@@ -194,7 +194,8 @@ tailcall:
                 proc = eval_frame(proc_frame);
 
                 // Check early if it's not a callable
-                if (!procedurep(proc) && !closurep(proc)) {
+                if (!procedurep(proc) && !closurep(proc) &&
+                        !continuationp(proc)) {
                     fatal_error("not a callable", frame);
                 }
 
@@ -295,6 +296,20 @@ apply_reentry:
                         return apply_procedure(frame);
                     }
                 }
+                else if (econtp(proc)) {
+                    // Is escaping continuation, call it.
+                    if (argc != 1) {
+                        fatal_error("continuation only accept 1 argument",
+                                    frame);
+                    }
+                    if (!econt_getenv(proc)) {
+                        fatal_error("continuation already out of scope",
+                                    frame);
+                    }
+                    obj_t *aux = *frame_ref(frame, 0);
+                    econt_putaux(proc, aux);
+                    longjmp(*econt_getenv(proc), 1);
+                }
                 else {
                     // Is scm-closure: *HARD PART COMES*
                     // Remember the frame layout:
@@ -385,6 +400,7 @@ apply_reentry:
     case TP_BOOLEAN:
     case TP_UNSPECIFIED:
     case TP_UDATA:
+    case TP_ECONT:
     case TP_EOFOBJ:
         return self;
     }

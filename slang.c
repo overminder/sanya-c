@@ -36,6 +36,7 @@ static langdef_t specforms[] = {
     {NULL, NULL}
 };
 
+static obj_t *symbol_quasiquote = NULL;
 static obj_t *symbol_unquote = NULL;
 static obj_t *symbol_unquote_splicing = NULL;
 
@@ -55,6 +56,7 @@ slang_open(obj_t *env)
         environ_bind(NULL, env, symbol_intern(NULL, iter->name),
                      specform_wrap(NULL, iter->call));
     }
+    symbol_quasiquote = symbol_intern(NULL, "quasiquote");
     symbol_unquote = symbol_intern(NULL, "unquote");
     symbol_unquote_splicing = symbol_intern(NULL, "unquote-splicing");
     gc_set_enabled(1);
@@ -226,9 +228,16 @@ expand_quasiquote(obj_t **frame, obj_t *content,
     }
 
     // Manually compare each item with unquote/unquote-splicing
+    obj_t *qq = symbol_quasiquote;
     obj_t *uq = symbol_unquote;
     obj_t *spl = symbol_unquote_splicing;
-    if (pair_car(content) == uq) {
+
+    if (pair_car(content) == qq) {
+        if (flag)
+            flag = QQ_DEFAULT;
+        return content;  // nested QQ
+    }
+    else if (pair_car(content) == uq) {
         obj_t *uq_body = pair_cadr(content);
         frame = frame_extend(frame, 1, FR_SAVE_PREV | FR_CONTINUE_ENV);
         *frame_ref(frame, 0) = uq_body;

@@ -23,6 +23,7 @@ static obj_t *vector_gc_visitor(obj_t *self);
 static obj_t *environ_gc_visitor(obj_t *self);
 static obj_t *dict_gc_visitor(obj_t *self);
 static obj_t *macro_gc_visitor(obj_t *self);
+static obj_t *econt_gc_visitor(obj_t *self);
 
 // Initialize gc visitors and finalizers for each primitive type.
 void
@@ -56,6 +57,7 @@ sobj_init()
     gc_register_type(TP_DICT, dict_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_SPECFORM, default_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_MACRO, macro_gc_visitor, default_gc_finalizer);
+    gc_register_type(TP_ECONT, econt_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_UDATA, default_gc_visitor, default_gc_finalizer);
 
     // Symbol table
@@ -87,6 +89,7 @@ get_typename(obj_t *self)
         case TP_UNSPECIFIED: return "unspecified";
         case TP_SPECFORM: return "specform";
         case TP_MACRO: return "macro";
+        case TP_ECONT: return "escape-continuation";
         case TP_UDATA: return "udata";
         case TP_EOFOBJ: return "eof";
     }
@@ -211,6 +214,10 @@ print_repr(obj_t *self, FILE *stream)
         fprintf(stream, "#<macro at %p>", self->as_macro.rules);
         break;
 
+    case TP_ECONT:
+        fprintf(stream, "#<escape-continuation at %p>", self->as_econt.env);
+        break;
+
     default:
         NOT_REACHED();
     }
@@ -254,6 +261,9 @@ generic_hash(obj_t *self)
     case TP_BOOLEAN:
     case TP_UNSPECIFIED:
     case TP_ENVIRON:
+    case TP_SPECFORM:
+    case TP_MACRO:
+    case TP_ECONT:
     case TP_UDATA:
     case TP_EOFOBJ:
         hval = (long)self;
@@ -262,6 +272,44 @@ generic_hash(obj_t *self)
         NOT_REACHED();
     }
     return hval;
+}
+
+bool_t
+generic_eq(obj_t *a, obj_t *b)
+{
+    if (a == b) {
+        return 1;
+    }
+    if (get_type(a) != get_type(b)) {
+        return 0;
+    }
+
+    switch (get_type(a)) {
+    case TP_PAIR:
+    case TP_SYMBOL:
+    case TP_PROC:
+    case TP_FLONUM:
+    case TP_STRING:
+    case TP_VECTOR:
+    case TP_BOOLEAN:
+    case TP_CLOSURE:
+    case TP_ENVIRON:
+    case TP_SPECFORM:
+    case TP_MACRO:
+    case TP_ECONT:
+    case TP_UDATA:
+        return 0;
+
+    case TP_FIXNUM:
+        return fixnum_unwrap(a) == fixnum_unwrap(b);
+
+    case TP_NIL:
+    case TP_UNSPECIFIED:
+    case TP_EOFOBJ:
+    default:
+        break;
+    }
+    NOT_REACHED();
 }
 
 bool_t
@@ -1128,6 +1176,61 @@ macro_expand(obj_t **frame, obj_t *self, obj_t *args)
     return eval_frame(frame);
 }
 
+// Escape continuation
+obj_t *
+econt_wrap(obj_t **frame, void *env)
+{
+#ifdef ALWAYS_COLLECT
+    gc_collect(frame);
+#endif
+    obj_t *self = gc_malloc(sizeof(econt_obj_t), TP_ECONT);
+    if (!self) {
+        gc_collect(frame);
+        self = gc_malloc(sizeof(econt_obj_t), TP_ECONT);
+        if (!self)
+            fatal_error("out of memory", frame);
+    }
+    self->as_econt.env = env;
+    self->as_econt.aux = NULL;
+    return self;
+}
+
+bool_t
+continuationp(obj_t *self)
+{
+    return econtp(self);
+}
+
+bool_t
+econtp(obj_t *self)
+{
+    return get_type(self) == TP_ECONT;
+}
+
+jmp_buf *
+econt_getenv(obj_t *self)
+{
+    return (jmp_buf *)(self->as_econt.env);
+}
+
+void
+econt_clear(obj_t *self)
+{
+    self->as_econt.env = NULL;
+}
+
+obj_t *
+econt_getaux(obj_t *self)
+{
+    return self->as_econt.aux;
+}
+
+void
+econt_putaux(obj_t *self, obj_t *thing)
+{
+    self->as_econt.aux = thing;
+}
+
 // Static utilities
 
 static obj_t *
@@ -1184,5 +1287,11 @@ static obj_t *
 macro_gc_visitor(obj_t *self)
 {
     return self->as_macro.rules;
+}
+
+static obj_t *
+econt_gc_visitor(obj_t *self)
+{
+    return self->as_econt.aux;
 }
 

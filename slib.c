@@ -60,11 +60,14 @@ static obj_t *lib_eqp(obj_t **frame);
 static obj_t *lib_rtinfo(obj_t **frame);
 static obj_t *lib_set_backtrace_base(obj_t **frame);
 static obj_t *lib_dogc(obj_t **frame);
+static obj_t *lib_gc_set_verbosity(obj_t **frame);
 static obj_t *lib_error(obj_t **frame);
 static obj_t *lib_eval(obj_t **frame);
 static obj_t *lib_apply(obj_t **frame);
 static obj_t *lib_null_environ(obj_t **frame);
 static obj_t *lib_report_environ(obj_t **frame);
+
+static obj_t *lib_call_ec(obj_t **frame);
 
 static obj_t *lib_load(obj_t **frame);
 
@@ -125,13 +128,19 @@ static procdef_t library[] = {
 
     // Runtime Reflection
     {"gc", lib_dogc},
+    {"gc-set-verbosity", lib_gc_set_verbosity},
     {"runtime-info", lib_rtinfo},
     {"set-backtrace-base", lib_set_backtrace_base},
     {"error", lib_error},
+
+    // Env/Eval...
     {"eval", lib_eval},
     {"apply", lib_apply},
     {"scheme-report-environment", lib_report_environ},
     {"null-environment", lib_null_environ},
+
+    // Fancy stuffs
+    {"call-with-escaping-continuation", lib_call_ec},
 
     // Extension
     {"load", lib_load},
@@ -733,11 +742,27 @@ lib_dogc(obj_t **frame)
 {
     LIB_PROC_HEADER();
     if (argc == 0) {
-        gc_collect(frame);
-        return unspec_wrap();
+        return fixnum_wrap(frame, gc_collect(frame));
     }
     else {
         fatal_error("gc require no arguments", frame);
+    }
+}
+
+static obj_t *
+lib_gc_set_verbosity(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        obj_t *bval = *frame_ref(frame, 0);
+        if (!booleanp(bval))
+            fatal_error("gc-set-verbosity require boolean argument", frame);
+        else
+            gc_set_verbose(to_boolean(bval));
+        return unspec_wrap();
+    }
+    else {
+        fatal_error("gc-set-verbosity require 1 argument", frame);
     }
 }
 
@@ -769,52 +794,7 @@ lib_eqp(obj_t **frame)
         a = *frame_ref(frame, 1);
         b = *frame_ref(frame, 0);
 
-        if (a == b) {
-            return boolean_wrap(1);
-        }
-        if (get_type(a) != get_type(b)) {
-            return boolean_wrap(0);
-        }
-
-        switch (get_type(a)) {
-        case TP_PAIR:
-        case TP_SYMBOL:
-        case TP_PROC:
-            is_eq = 0;
-            break;
-
-        case TP_FIXNUM:
-            is_eq = fixnum_unwrap(a) == fixnum_unwrap(b);
-            break;
-
-        case TP_FLONUM:
-        case TP_STRING:
-        case TP_CLOSURE:
-            is_eq = 0;
-            break;
-
-        case TP_NIL:
-            NOT_REACHED();
-
-        case TP_VECTOR:
-        case TP_BOOLEAN:
-            is_eq = 0;
-            break;
-
-        case TP_UNSPECIFIED:
-            NOT_REACHED();
-            break;
-
-        case TP_ENVIRON:
-        case TP_UDATA:
-            is_eq = 0;
-            break;
-
-        case TP_EOFOBJ:
-            NOT_REACHED();
-            break;
-        }
-        return boolean_wrap(is_eq);
+        return boolean_wrap(generic_eq(a, b));
     }
     else {
         fatal_error("eq? require 2 arguments", frame);
@@ -918,6 +898,40 @@ lib_load(obj_t **frame)
     }
     else {
         fatal_error("load require 1 argument", frame);
+    }
+}
+
+static obj_t *
+lib_call_ec(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        jmp_buf env;
+        obj_t *proc = *frame_ref(frame, 0);
+        obj_t *cont = econt_wrap(frame, &env);
+        obj_t *arg = pair_wrap(frame, cont, nil_wrap());
+        obj_t *expr = pair_wrap(frame, proc, arg);
+        obj_t *retval;
+
+        if (!setjmp(env)) {
+            // Enter the proc
+            obj_t **ex_frame = frame_extend(frame, 1,
+                    FR_SAVE_PREV | FR_CONTINUE_ENV);
+            *frame_ref(ex_frame, 0) = expr;
+            // May not return.
+            retval = eval_frame(ex_frame);
+        }
+        else {
+            // Escape from the proc
+            retval = econt_getaux(cont);
+        }
+        // Clear up the continuation
+        econt_clear(cont);
+        return retval;
+    }
+    else {
+        fatal_error("call-with-escaping-continuation "
+                    "require 1 argument", frame);
     }
 }
 

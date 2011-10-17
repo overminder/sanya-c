@@ -3,6 +3,7 @@
 #include <string.h>
 #include "sgc.h"
 #include "sobj.h"
+#include "seval.h"  // for eval_frame() in macro
 
 // Uncomment this when testing collector.
 //#define ALWAYS_COLLECT
@@ -21,6 +22,7 @@ static obj_t *closure_gc_visitor(obj_t *self);
 static obj_t *vector_gc_visitor(obj_t *self);
 static obj_t *environ_gc_visitor(obj_t *self);
 static obj_t *dict_gc_visitor(obj_t *self);
+static obj_t *macro_gc_visitor(obj_t *self);
 
 // Initialize gc visitors and finalizers for each primitive type.
 void
@@ -52,6 +54,8 @@ sobj_init()
     gc_register_type(TP_ENVIRON, environ_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_EOFOBJ, default_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_DICT, dict_gc_visitor, default_gc_finalizer);
+    gc_register_type(TP_SPECFORM, default_gc_visitor, default_gc_finalizer);
+    gc_register_type(TP_MACRO, macro_gc_visitor, default_gc_finalizer);
     gc_register_type(TP_UDATA, default_gc_visitor, default_gc_finalizer);
 
     // Symbol table
@@ -81,6 +85,8 @@ get_typename(obj_t *self)
         case TP_VECTOR: return "vector";
         case TP_BOOLEAN: return "boolean";
         case TP_UNSPECIFIED: return "unspecified";
+        case TP_SPECFORM: return "specform";
+        case TP_MACRO: return "macro";
         case TP_UDATA: return "udata";
         case TP_EOFOBJ: return "eof";
     }
@@ -999,6 +1005,88 @@ found_entry:
     return entry;
 }
 
+obj_t *
+specform_wrap(obj_t **frame, sobj_funcptr2_t call)
+{
+    obj_t *self = gc_malloc(sizeof(specform_obj_t), TP_SPECFORM);
+#ifndef ALWAYS_COLLECT
+    if (!self) {
+#endif
+        gc_collect(frame);
+        self = gc_malloc(sizeof(specform_obj_t), TP_SPECFORM);
+        if (!self)
+            fatal_error("out of memory", frame);
+#ifndef ALWAYS_COLLECT
+    }
+#endif
+    self->as_specform.call = call;
+    return self;
+}
+
+bool_t
+specformp(obj_t *self)
+{
+    return get_type(self) == TP_SPECFORM;
+}
+
+sobj_funcptr2_t
+specform_unwrap(obj_t *self)
+{
+    return self->as_specform.call;
+}
+
+bool_t
+syntaxp(obj_t *self)
+{
+    return specformp(self) || macrop(self);
+}
+
+obj_t *
+macro_wrap(obj_t **frame, obj_t *rule)
+{
+    obj_t *self = gc_malloc(sizeof(macro_obj_t), TP_MACRO);
+#ifndef ALWAYS_COLLECT
+    if (!self) {
+#endif
+        SGC_ROOT1(frame, rule);
+        gc_collect(frame);
+        self = gc_malloc(sizeof(macro_obj_t), TP_MACRO);
+        if (!self)
+            fatal_error("out of memory", frame);
+#ifndef ALWAYS_COLLECT
+    }
+#endif
+    self->as_macro.rules = rule;
+    return self;
+}
+
+bool_t
+macrop(obj_t *self)
+{
+    return get_type(self) == TP_MACRO;
+}
+
+obj_t *
+macro_expand(obj_t **frame, obj_t *self, obj_t *args)
+{
+    {
+        // Quote the arg, note the inefficiency here...
+        obj_t **ex_frame = frame;
+        args = pair_car(args);
+        SGC_ROOT2(ex_frame, self, args);
+        args = pair_wrap(ex_frame, args, nil_wrap());
+        SGC_ROOT1(ex_frame, args);
+        args = pair_wrap(ex_frame, symbol_intern(ex_frame, "quote"),
+                         args);
+        SGC_ROOT1(ex_frame, args);
+        args = pair_wrap(ex_frame, args, nil_wrap());
+    }
+    obj_t *expr = pair_wrap(frame, self->as_macro.rules, args);
+    frame = frame_extend(frame, 1, FR_SAVE_PREV | FR_CONTINUE_ENV);
+    *frame_ref(frame, 0) = expr;
+    return eval_frame(frame);
+}
+
 // Static utilities
 
 static obj_t *
@@ -1049,5 +1137,11 @@ static obj_t *
 dict_gc_visitor(obj_t *self)
 {
     return self->as_dict.vec;
+}
+
+static obj_t *
+macro_gc_visitor(obj_t *self)
+{
+    return self->as_macro.rules;
 }
 

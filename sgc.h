@@ -53,6 +53,7 @@ void gc_incr_stack_base(long nb_incr);
 
 void gc_print_heap();
 void gc_print_stack(obj_t **frame);
+void gc_set_stack_trace_lite_base(obj_t **base);
 void gc_stack_trace_lite(obj_t **frame);
 
 #endif /* SGC_H */

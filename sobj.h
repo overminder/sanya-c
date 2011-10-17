@@ -29,7 +29,9 @@ typedef uint8_t bool_t;
 #define TP_ENVIRON      12
 #define TP_EOFOBJ       13
 #define TP_DICT         14
-#define TP_UDATA        15
+#define TP_SPECFORM     15
+#define TP_MACRO        16
+#define TP_UDATA        17
 #define TP_MAX          TP_UDATA
 
 typedef struct obj_t obj_t;
@@ -57,7 +59,10 @@ typedef struct {
     char val[1];
 } symbol_obj_t;
 
+// For primitive procedures
 typedef obj_t * (*sobj_funcptr_t) (obj_t **);
+// For special forms
+typedef obj_t * (*sobj_funcptr2_t) (obj_t **, obj_t **);
 
 typedef struct {
     sobj_funcptr_t func;
@@ -81,6 +86,14 @@ typedef struct {
     uint32_t hash_mask;
     obj_t *vec;
 } dict_obj_t;
+
+typedef struct {
+    sobj_funcptr2_t call;
+} specform_obj_t;
+
+typedef struct {
+    obj_t *rules;  // rule implemented as closure
+} macro_obj_t;
 
 // 16-byte for each object...
 #define OB_HEADER \
@@ -108,6 +121,8 @@ struct obj_t {
         vector_obj_t as_vector;
         environ_obj_t as_environ;
         dict_obj_t as_dict;
+        specform_obj_t as_specform;
+        macro_obj_t as_macro;
     };
 };
 
@@ -121,19 +136,10 @@ bool_t to_boolean(obj_t *self);
 void print_repr(obj_t *self, FILE *stream);
 long generic_hash(obj_t *self);
 
-// Type predicates
+// Type predicates, most of them are around the corresponding type's decl
 bool_t nullp(obj_t *self);
-bool_t pairp(obj_t *self);
-bool_t symbolp(obj_t *self);
-bool_t fixnump(obj_t *self);
-bool_t flonump(obj_t *self);
-bool_t stringp(obj_t *self);
-bool_t procedurep(obj_t *self);
-bool_t closurep(obj_t *self);
-bool_t vectorp(obj_t *self);
 bool_t booleanp(obj_t *self);
 bool_t unspecp(obj_t *self);
-bool_t environp(obj_t *self);
 bool_t eofobjp(obj_t *self);
 
 // Simple debug func
@@ -148,43 +154,51 @@ obj_t *eofobj_wrap();
 
 // Fixnum
 obj_t *fixnum_wrap(obj_t **frame, long ival);
+bool_t fixnump(obj_t *self);
 long fixnum_unwrap(obj_t *self);
 
 // Flonum, note that value of fixnum will also be accessable from flonum_uw
 obj_t *flonum_wrap(obj_t **frame, double dval);
+bool_t flonump(obj_t *self);
 double flonum_unwrap(obj_t *self);
 
 // Pair
 obj_t *pair_wrap(obj_t **frame, obj_t *car, obj_t *cdr);
+bool_t pairp(obj_t *self);
 obj_t *pair_car(obj_t *self);
 obj_t *pair_cdr(obj_t *self);
 void pair_set_car(obj_t *self, obj_t *car);
 void pair_set_cdr(obj_t *self, obj_t *cdr);
 
 // Symbol
+bool_t symbolp(obj_t *self);
+obj_t *symbol_intern(obj_t **frame, const char *sval);
 const char *symbol_unwrap(obj_t *self);
 long symbol_hash(obj_t *self);
-obj_t *symbol_intern(obj_t **frame, const char *sval);
 bool_t symbol_eq(obj_t *self, obj_t *other);
 
 // String
 obj_t *string_wrap(obj_t **frame, const char *sval, size_t len);
+bool_t stringp(obj_t *self);
 const char *string_unwrap(obj_t *self);
 size_t string_length(obj_t *self);
 bool_t string_eq(obj_t *self, obj_t *other);
 
 // Proc
 obj_t *proc_wrap(obj_t **frame, sobj_funcptr_t func);
+bool_t procedurep(obj_t *self);
 sobj_funcptr_t proc_unwrap(obj_t *self);
 
 // Closure
 obj_t *closure_wrap(obj_t **frame, obj_t *env, obj_t *formals, obj_t *body);
+bool_t closurep(obj_t *self);
 obj_t *closure_env(obj_t *self);
 obj_t *closure_formals(obj_t *self);
 obj_t *closure_body(obj_t *self);
 
 // Vector
 obj_t *vector_wrap(obj_t **frame, size_t nb_alloc, obj_t *fill);
+bool_t vectorp(obj_t *self);
 obj_t *vector_from_list(obj_t **frame, obj_t *lis);
 obj_t **vector_ref(obj_t *self, long index);
 size_t vector_length(obj_t *self);
@@ -200,6 +214,7 @@ enum environ_lookup_flag {
 //   e.g., (env . outer-env)
 //   Where env is ((key . value) (key2 . value2) ...)
 obj_t *environ_wrap(obj_t **frame, obj_t *outer);
+bool_t environp(obj_t *self);
 obj_t *environ_set(obj_t *self, obj_t *key, obj_t *val);
 obj_t *environ_lookup(obj_t *self, obj_t *key, enum environ_lookup_flag);
 obj_t *environ_def(obj_t **frame, obj_t *self, obj_t *key, obj_t *value);
@@ -219,5 +234,16 @@ size_t dict_size(obj_t *self);
 // If not found, it will return NULL.
 obj_t *dict_lookup(obj_t **frame, obj_t *self,
                    obj_t *key, enum dict_lookup_flag);
+
+// Language construct and macro
+bool_t syntaxp(obj_t *self);
+
+obj_t *specform_wrap(obj_t **frame, sobj_funcptr2_t call);
+bool_t specformp(obj_t *self);
+sobj_funcptr2_t specform_unwrap(obj_t *self);
+
+obj_t *macro_wrap(obj_t **frame, obj_t *rule);
+bool_t macrop(obj_t *self);
+obj_t *macro_expand(obj_t **frame, obj_t *self, obj_t *args);
 
 #endif /* SOBJ_H */

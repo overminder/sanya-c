@@ -1,5 +1,5 @@
 # automatically generated from .pymakegen_v2.conf
-# timestamp: 1318780297.051393
+# timestamp: 1318821636.993747
 # handler_namespaces: ['root', handler.flexbison, handler.gcc]
 
 flexbison_BISON=bison
@@ -15,27 +15,31 @@ all : sparse/scm_token.flex.h sparse/scm_token.flex.c  \
 	    sparse/scm_syntax.bison.h sparse/scm_syntax.bison.c  \
 	    $(gcc_TARGET)
 	
-$(gcc_TARGET) : sobj.o main.o seval.o sgc.o slib.o  \
+$(gcc_TARGET) : sobj.o main.o seval.o sgc.o slang.o slib.o  \
 	    sparse/scm_token.flex.o sparse/scm_syntax.bison.o
-	$(gcc_CC) $(gcc_LDFLAGS) sobj.o main.o seval.o sgc.o slib.o  \
-	    sparse/scm_token.flex.o sparse/scm_syntax.bison.o -o  \
+	$(gcc_CC) $(gcc_LDFLAGS) sobj.o main.o seval.o sgc.o slang.o  \
+	    slib.o sparse/scm_token.flex.o sparse/scm_syntax.bison.o -o  \
 	    $(gcc_TARGET)
 
 main.o : main.c sgc.h sobj.h slib.h sobj.h seval.h sobj.h
 	$(gcc_CC) $(gcc_CFLAGS) main.c $(gcc_INCLUDES) -o main.o
 
-seval.o : seval.c sgc.h sobj.h seval_impl.h slib.h sobj.h  \
-	    seval.h sobj.h
+seval.o : seval.c sgc.h sobj.h slang.h sobj.h seval_impl.h  \
+	    slib.h sobj.h seval.h sobj.h
 	$(gcc_CC) $(gcc_CFLAGS) seval.c $(gcc_INCLUDES) -o seval.o
 
 sgc.o : sgc.c sgc.h sobj.h
 	$(gcc_CC) $(gcc_CFLAGS) sgc.c $(gcc_INCLUDES) -o sgc.o
 
+slang.o : slang.c sgc.h sobj.h slang.h sobj.h seval_impl.h  \
+	    seval.h sobj.h
+	$(gcc_CC) $(gcc_CFLAGS) slang.c $(gcc_INCLUDES) -o slang.o
+
 slib.o : slib.c sgc.h sobj.h seval_impl.h rl.h seval.h sobj.h  \
 	    slib.h sobj.h
 	$(gcc_CC) $(gcc_CFLAGS) slib.c $(gcc_INCLUDES) -o slib.o
 
-sobj.o : sobj.c sgc.h sobj.h sobj.h
+sobj.o : sobj.c sgc.h sobj.h sobj.h seval.h sobj.h
 	$(gcc_CC) $(gcc_CFLAGS) sobj.c $(gcc_INCLUDES) -o sobj.o
 
 sparse/scm_syntax.bison.c : sparse/scm_syntax.y
@@ -68,6 +72,6 @@ clean :
 	rm -rf sparse/scm_token.flex.h sparse/scm_token.flex.c  \
 	    sparse/scm_syntax.bison.h sparse/scm_syntax.bison.c 
 	 rm -rf  \
-	    sobj.o main.o seval.o sgc.o slib.o sparse/scm_token.flex.o  \
-	    sparse/scm_syntax.bison.o
+	    sobj.o main.o seval.o sgc.o slang.o slib.o  \
+	    sparse/scm_token.flex.o sparse/scm_syntax.bison.o
 .PHONY : clean

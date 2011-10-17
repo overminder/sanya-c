@@ -3,20 +3,11 @@
 #include "seval.h"
 #include "seval_impl.h"
 #include "slib.h"
+#include "slang.h"
 
 extern void sparse_init();
 
-             // Language constructs
-static obj_t *symbol_if,
-             *symbol_lambda,
-             *symbol_define,
-             *symbol_set,
-             *symbol_begin,
-             *symbol_quote,
-
-             // Builtin macros
-             *symbol_let_syntax,
-             *symbol_ellipsis;
+static obj_t *symbol_begin;  // For lambda transform...
 
 static obj_t *eval_symbol(obj_t **frame);
 static obj_t *apply_procedure(obj_t **frame);
@@ -38,15 +29,7 @@ seval_init()
 
     obj_t **frame = gc_get_stack_base();
 
-    symbol_if = symbol_intern(frame, "if");
-    symbol_lambda = symbol_intern(frame, "lambda");
-    symbol_define = symbol_intern(frame, "define");
-    symbol_set = symbol_intern(frame, "set!");
     symbol_begin = symbol_intern(frame, "begin");
-    symbol_quote = symbol_intern(frame, "quote");
-
-    symbol_let_syntax = symbol_intern(frame, "let-syntax");
-    symbol_ellipsis = symbol_intern(frame, "...");
 
     // The very first frame.
     frame = frame_extend(frame, 0, FR_CLEAR_SLOTS);
@@ -55,6 +38,9 @@ seval_init()
 
     // Adding some library functions.
     slib_open(frame_env(frame));
+
+    // And language constructs
+    slang_open(frame_env(frame));
 }
 
 // Frame layout:
@@ -153,115 +139,30 @@ tailcall:
         car = pair_car(self);
         cdr = pair_cdr(self);
         if (symbolp(car)) {
-            // Handling special forms
-
-            // TODO: put syntax constructs in the environ as well,
-            // and use a special token to facilitate TCO.
-            if (car == symbol_if) {
-                obj_t *pred, *todo, *otherwise;
-                pred = pair_car(cdr);
-                todo = pair_cadr(cdr);
-                otherwise = pair_cddr(cdr);
-                if (nullp(otherwise)) {
-                    otherwise = unspec_wrap();
-                }
-                else if (!nullp(pair_cdr(otherwise))) {
-                    fatal_error("if -- too many arguments", frame);
-                }
-                else {
-                    otherwise = pair_car(otherwise);
-                }
-
-                {
-                    // start to evaluate the predicate.
-                    obj_t **pred_frame = frame_extend(
-                            frame, 1, FR_CONTINUE_ENV | FR_SAVE_PREV);
-                    *frame_ref(pred_frame, 0) = pred;
-                    pred = eval_frame(pred_frame);
-                }
-                if (to_boolean(pred)) {
-                    *frame_ref(frame, 0) = todo;
-                }
-                else {
-                    *frame_ref(frame, 0) = otherwise;
-                }
-                goto tailcall;
-            }
-            else if (car == symbol_lambda) {
-                return closure_wrap(frame, frame_env(frame_prev(frame)),
-                                    pair_car(cdr), pair_cdr(cdr));
-            }
-            else if (car == symbol_define) {
-                w = pair_car(cdr);
-                if (symbolp(w)) {
-                    // x: the expression
-                    x = pair_car(pair_cdr(cdr));
-                    {
-                        // Get the value of the expression before binding.
-                        obj_t **expr_frame = frame_extend(
-                                frame, 1, FR_CONTINUE_ENV | FR_SAVE_PREV);
-                        *frame_ref(expr_frame, 0) = x;
-                        x = eval_frame(expr_frame);
-                    }
-                }
-                else if (pairp(w)) {
-                    // x: the formals, v: the body
-                    x = pair_cdr(w);
-                    w = pair_car(w);
-                    v = pair_cdr(cdr);
-                    x = closure_wrap(frame, frame_env(frame),
-                                     x, v);
-                }
-                else {
-                    fatal_error("define -- first argument is neither a "
-                                "symbol nor a pair", frame);
-                }
-                environ_def(frame, frame_env(frame), w, x);
-                return unspec_wrap();
-            }
-            else if (car == symbol_set) {
-                w = pair_car(cdr);
-                if (get_type(w) != TP_SYMBOL) {
-                    fatal_error("set! -- key must be symbol", frame);
-                }
-                x = pair_car(pair_cdr(cdr));
-                {
-                    // Get the value of the expression before binding.
-                    obj_t **expr_frame = frame_extend(
-                            frame, 1, FR_CONTINUE_ENV | FR_SAVE_PREV);
-                    *frame_ref(expr_frame, 0) = x;
-                    x = eval_frame(expr_frame);
-                }
-                environ_set(frame_env(frame), w, x);
-                return unspec_wrap();
-            }
-            else if (car == symbol_begin) {
-                obj_t *iter;
-                for (iter = cdr; pairp(iter); iter = pair_cdr(iter)) {
-                    // Eval each expression except the last.
-                    if (!pairp(pair_cdr(iter))) {
-                        break;
-                    }
-                    obj_t **expr_frame = frame_extend(frame, 1,
+            // Handling special form / macros
+            obj_t *binding = environ_lookup(frame_env(frame),
+                    car, EL_LOOK_OUTER);
+            if (binding) {
+                obj_t *syntax = pair_cdr(binding);
+                obj_t *tailp;
+                obj_t *retval;
+                if (specformp(syntax)) {
+                    obj_t **ex_frame = frame_extend(frame, 1,
                             FR_SAVE_PREV | FR_CONTINUE_ENV);
-                    *frame_ref(expr_frame, 0) = pair_car(iter);
-                    eval_frame(expr_frame);
+                    *frame_ref(ex_frame, 0) = cdr;
+                    retval = specform_unwrap(syntax)(ex_frame, &tailp);
+                    if (slang_tailp(tailp)) {
+                        *frame_ref(frame, 0) = retval;
+                        goto tailcall;
+                    }
+                    else {
+                        return retval;
+                    }
                 }
-                if (nullp(iter)) {
-                    // Empty (begin) expression
-                    return unspec_wrap();
+                else if (macrop(syntax)) {
+                    *frame_ref(frame, 0) = macro_expand(frame, syntax, cdr);
+                    goto tailcall;
                 }
-                else if (!nullp(pair_cdr(iter))) {
-                    fatal_error("begin -- not a well-formed list", frame);
-                }
-                *frame_ref(frame, 0) = pair_car(iter);
-                goto tailcall;
-            }
-            else if (car == symbol_quote) {
-                if (nullp(cdr) || !nullp(pair_cdr(cdr))) {
-                    fatal_error("quote -- wrong number of argument", frame);
-                }
-                return pair_car(cdr);
             }
         }
 
@@ -391,7 +292,8 @@ apply_reentry:
                     frame_set_env(frame, env);  // Prevent from gc
 
                     // 2: push bindings into it -- pos args only for now.
-                    // XXX: arg length check.
+                    // XXX: arg length check is not done.
+                    // XXX: supporting var-arg is ongoing
                     formals = closure_formals(proc);
                     for (i = argc - 1; i >= 0; --i) {
                         environ_bind(frame, env,
@@ -415,7 +317,15 @@ apply_reentry:
         }
 
     case TP_SYMBOL:
-        return eval_symbol(frame);
+        {
+            obj_t *got = eval_symbol(frame);
+            if (syntaxp(got)) {
+                fatal_error("bad syntax", frame);
+            }
+            else {
+                return got;
+            }
+        }
 
     case TP_PROC:
     case TP_FIXNUM:

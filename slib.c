@@ -57,6 +57,7 @@ static obj_t *lib_eofobjp(obj_t **frame);
 static obj_t *lib_eqp(obj_t **frame);
 
 static obj_t *lib_rtinfo(obj_t **frame);
+static obj_t *lib_set_backtrace_base(obj_t **frame);
 static obj_t *lib_dogc(obj_t **frame);
 static obj_t *lib_eval(obj_t **frame);
 static obj_t *lib_apply(obj_t **frame);
@@ -122,6 +123,7 @@ static procdef_t library[] = {
     // Runtime Reflection
     {"gc", lib_dogc},
     {"runtime-info", lib_rtinfo},
+    {"set-backtrace-base", lib_set_backtrace_base},
     {"eval", lib_eval},
     {"apply", lib_apply},
     {"scheme-report-environment", lib_report_environ},
@@ -793,6 +795,19 @@ lib_rtinfo(obj_t **frame)
     }
     else {
         fatal_error("runtime-info require no arguments", frame);
+    }
+}
+
+static obj_t *
+lib_set_backtrace_base(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    if (argc == 0) {
+        gc_set_stack_trace_lite_base(frame_prev(frame));
+        return unspec_wrap();
+    }
+    else {
+        fatal_error("set-backtrace-base require no arguments", frame);
     }
 }
 

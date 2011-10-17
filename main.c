@@ -21,6 +21,7 @@ repl()
         "      (display \"received eof, bye.\")"
         "      (newline))"
         "    (begin"
+        "      (set-backtrace-base)"
         "      (define result (eval expr *env*))"
         "      (display (if (unspecified? result) \"OK.\" result))"
         "      (newline)"

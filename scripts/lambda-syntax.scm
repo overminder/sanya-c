@@ -1,0 +1,2 @@
+
+(define cond (lambda-syntax (

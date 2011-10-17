@@ -60,6 +60,7 @@ static obj_t *lib_eqp(obj_t **frame);
 static obj_t *lib_rtinfo(obj_t **frame);
 static obj_t *lib_set_backtrace_base(obj_t **frame);
 static obj_t *lib_dogc(obj_t **frame);
+static obj_t *lib_error(obj_t **frame);
 static obj_t *lib_eval(obj_t **frame);
 static obj_t *lib_apply(obj_t **frame);
 static obj_t *lib_null_environ(obj_t **frame);
@@ -126,6 +127,7 @@ static procdef_t library[] = {
     {"gc", lib_dogc},
     {"runtime-info", lib_rtinfo},
     {"set-backtrace-base", lib_set_backtrace_base},
+    {"error", lib_error},
     {"eval", lib_eval},
     {"apply", lib_apply},
     {"scheme-report-environment", lib_report_environ},
@@ -736,6 +738,23 @@ lib_dogc(obj_t **frame)
     }
     else {
         fatal_error("gc require no arguments", frame);
+    }
+}
+
+static obj_t *
+lib_error(obj_t **frame)
+{
+    obj_t *what;
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        what = *frame_ref(frame, 0);
+        if (!stringp(what)) {
+            fatal_error("error require string argument", frame);
+        }
+        fatal_error(string_unwrap(what), frame);
+    }
+    else {
+        fatal_error("error require one argument", frame);
     }
 }
 

@@ -33,3 +33,51 @@
   (display (+ x y))
   (newline))
 
+(define (case->pred case-datum)
+  (let ((retval (car case-datum)))
+    (if (eq? retval 'else) #t
+      retval)))
+
+(define (case->body case-datum)
+  (cons 'begin (cdr case-datum)))
+
+(define (cases->if cases)
+  (define (cases->if1 cases result)
+    (if (null? cases) result
+      (let ((case-datum (car cases))
+            (rest (cdr cases)))
+        `(if ,(case->pred case-datum) ,(case->body case-datum)
+           ,(cases->if1 rest result)))))
+  (cases->if1 cases 'unspec))
+
+(define cond
+  (lambda-syntax cases
+    (if (null? cases) (error "empty cond")
+      (cases->if cases))))
+
+(display "testing cond, (expecting true) => ")
+(display
+  (cond
+    (#f 'false)
+    (else 'true)))
+(newline)
+
+(define letrec
+  (lambda-syntax (bindings . body)
+    (let ((binding-defs (bindings->defines bindings)))
+      `((lambda ()
+          ,@binding-defs
+          ,@body)))))
+
+(define (bindings->defines bindings)
+  (if (null? bindings) '()
+    (cons `(define ,@(car bindings))
+          (bindings->defines (cdr bindings)))))
+
+(display "test letrec, expecting 9 (actually it is also let*...) => ")
+(letrec ((x 9)
+         (y (lambda () x)))
+  (display (y))
+  (newline))
+
+

@@ -261,12 +261,17 @@ expand_quasiquote(obj_t **frame, obj_t *content,
 
         for (iter = content; pairp(iter); iter = pair_cdr(iter)) {
             // `next` will always be null or pair, since `content` is a list.
+loop_begin:
             next = pair_cdr(iter);
             if (nullp(next))  // we are done.
                 break;
 
+            // XXX: this is strange. why do we need to initialize it?
+            ret_flag = QQ_DEFAULT;
             got = expand_quasiquote(frame, pair_car(next), &ret_flag);
             if (ret_flag & QQ_SPLICING) {
+                // Special handling for unquote-splicing
+                // WARNING: messy code below!
                 got = pair_copy_list(frame, got);
 
                 if (nullp(got)) {
@@ -279,9 +284,11 @@ expand_quasiquote(obj_t **frame, obj_t *content,
                     }
                     pair_set_cdr(got, pair_cdr(next));  // got -> (next->next)
                     iter = got;  // make sure the next iteration is correct
+                    goto loop_begin;  // And this...
                 }
             }
             else {
+                // Not unquote-splicing, easy...
                 pair_set_car(next, got);
             }
         }

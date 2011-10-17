@@ -74,7 +74,7 @@ gc_malloc(size_t size, type_t ob_type)
 
     if (ob_type > TP_MAX) {
         // Invalid type
-        fatal_error("gc_malloc: unknown type of object");
+        fatal_error("gc_malloc: unknown type of object", NULL);
     }
 
     size += sizeof(header_obj_t);
@@ -230,6 +230,53 @@ gc_print_heap()
     }
     fprintf(stderr, "\n");
     fprintf(stderr, "\n*************\nGC-PRINT-HEAP\n\n");
+}
+
+void
+gc_stack_trace_lite(obj_t **frame)
+{
+    obj_t **iter;
+    obj_t **fp = NULL;
+    long depth = 0;
+
+    fprintf(stderr, "\nGC-PRINT-STACK-LITE\n===================\n\n");
+
+    // Firstly get the closest frame pointer
+    for (iter = frame; iter < stack + STACK_SIZE; ++iter) {
+        if ((obj_t **)*iter > iter && (obj_t **)*iter < stack + STACK_SIZE) {
+            fp = iter;
+            break;
+        }
+    }
+
+    obj_t **prev_fp;
+    // Then print out the variables
+    while (fp) {
+        prev_fp = (obj_t **)*fp;
+        if (!prev_fp)
+            break;
+
+        for (iter = fp + 2; iter < prev_fp; ++iter) {
+            fprintf(stderr, " #%-2ld @%p ", depth, *iter);
+            if ((obj_t **)*iter > iter &&
+                    (obj_t **)*iter < stack + STACK_SIZE) {
+                fprintf(stderr, "[frame-ptr]");
+                ++depth;
+            }
+            else if ((obj_t **)iter >= stack + STACK_SIZE) {
+                goto end_of_stack;
+            }
+            else {
+                if (iter && *iter)
+                    print_repr(*iter, stderr);
+            }
+            fprintf(stderr, "\n");
+        }
+        fp = prev_fp;
+    }
+
+end_of_stack:
+    fprintf(stderr, "\nGC-PRINT-STACK-LITE\n*******************\n\n");
 }
 
 void

@@ -166,7 +166,7 @@ tailcall:
                     otherwise = unspec_wrap();
                 }
                 else if (!nullp(pair_cdr(otherwise))) {
-                    fatal_error("if -- too many arguments");
+                    fatal_error("if -- too many arguments", frame);
                 }
                 else {
                     otherwise = pair_car(otherwise);
@@ -214,7 +214,7 @@ tailcall:
                 }
                 else {
                     fatal_error("define -- first argument is neither a "
-                                "symbol nor a pair");
+                                "symbol nor a pair", frame);
                 }
                 environ_def(frame, frame_env(frame), w, x);
                 return unspec_wrap();
@@ -222,7 +222,7 @@ tailcall:
             else if (car == symbol_set) {
                 w = pair_car(cdr);
                 if (get_type(w) != TP_SYMBOL) {
-                    fatal_error("set! -- key must be symbol");
+                    fatal_error("set! -- key must be symbol", frame);
                 }
                 x = pair_car(pair_cdr(cdr));
                 {
@@ -252,14 +252,14 @@ tailcall:
                     return unspec_wrap();
                 }
                 else if (!nullp(pair_cdr(iter))) {
-                    fatal_error("begin -- not a well-formed list");
+                    fatal_error("begin -- not a well-formed list", frame);
                 }
                 *frame_ref(frame, 0) = pair_car(iter);
                 goto tailcall;
             }
             else if (car == symbol_quote) {
                 if (nullp(cdr) || !nullp(pair_cdr(cdr))) {
-                    fatal_error("quote -- wrong number of argument");
+                    fatal_error("quote -- wrong number of argument", frame);
                 }
                 return pair_car(cdr);
             }
@@ -288,7 +288,7 @@ tailcall:
 
                 // Check early if it's not a callable
                 if (!procedurep(proc) && !closurep(proc)) {
-                    fatal_error("not a callable");
+                    fatal_error("not a callable", frame);
                 }
 
                 // Push the callable (whatever it is)
@@ -311,7 +311,7 @@ apply_reentry:
                 *frame = pair_car(iter);
             }
             if (!nullp(iter)) {
-                fatal_error("not a well-formed list");
+                fatal_error("not a well-formed list", frame);
             }
 
             // -- 2: move each item into evaluatin position and eval.
@@ -350,7 +350,8 @@ apply_reentry:
                     if (lib_is_eval_proc(proc)) {
                         // Special case for (eval expr env)
                         if (argc != 2) {
-                            fatal_error("eval should have 2 argument");
+                            fatal_error("eval should have 2 argument",
+                                        frame);
                         }
                         obj_t *expr = *frame_ref(frame, 1);
                         obj_t *environ = *frame_ref(frame, 0);
@@ -367,7 +368,8 @@ apply_reentry:
                     else if (lib_is_apply_proc(proc)) {
                         // Special case for (apply proc args)
                         if (argc != 2) {
-                            fatal_error("apply should have 2 arguments");
+                            fatal_error("apply should have 2 arguments",
+                                        frame);
                         }
                         proc = *frame_ref(frame, 1);
                         cdr = *frame_ref(frame, 0);
@@ -423,7 +425,7 @@ apply_reentry:
         return self;
 
     case TP_NIL:
-        fatal_error("empty application");
+        fatal_error("empty application", frame);
         break;
 
     case TP_VECTOR:
@@ -444,7 +446,7 @@ eval_symbol(obj_t **frame)
     if (binding)
         return pair_cdr(binding);
     else
-        fatal_error("unbound variable");
+        fatal_error("unbound variable", frame);
 }
 
 static obj_t *

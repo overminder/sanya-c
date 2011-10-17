@@ -330,9 +330,11 @@ eofobjp(obj_t *self)
 
 
 void
-fatal_error(const char *msg)
+fatal_error(const char *msg, obj_t **frame)
 {
     fprintf(stderr, "FATAL -- %s\n", msg);
+    if (frame)
+        gc_stack_trace_lite(frame);
     exit(1);
 }
 
@@ -373,7 +375,7 @@ fixnum_wrap(obj_t **frame, long ival)
         gc_collect(frame);
         self = gc_malloc(sizeof(fixnum_obj_t), TP_FIXNUM);
         if (!self)
-            fatal_error("out of memory");
+            fatal_error("out of memory", frame);
 #ifndef ALWAYS_COLLECT
     }
 #endif
@@ -387,7 +389,7 @@ fixnum_unwrap(obj_t *self)
     if (fixnump(self))
         return self->as_fixnum.val;
     else
-        fatal_error("not a fixnum");
+        fatal_error("not a fixnum", NULL);
 }
 
 // Flonum
@@ -401,7 +403,7 @@ flonum_wrap(obj_t **frame, double dval)
         gc_collect(frame);
         self = gc_malloc(sizeof(flonum_obj_t), TP_FLONUM);
         if (!self)
-            fatal_error("out of memory");
+            fatal_error("out of memory", frame);
 #ifndef ALWAYS_COLLECT
     }
 #endif
@@ -417,7 +419,7 @@ flonum_unwrap(obj_t *self)
     else if (fixnump(self))
         return fixnum_unwrap(self);
     else
-        fatal_error("not a number");
+        fatal_error("not a number", NULL);
 }
 
 // Pair
@@ -432,7 +434,7 @@ pair_wrap(obj_t **frame, obj_t *car, obj_t *cdr)
         gc_collect(frame);
         self = gc_malloc(sizeof(pair_obj_t), TP_PAIR);
         if (!self)
-            fatal_error("out of memory");
+            fatal_error("out of memory", frame);
 #ifndef ALWAYS_COLLECT
     }
 #endif
@@ -447,7 +449,7 @@ pair_car(obj_t *self)
     if (pairp(self))
         return self->as_pair.car;
     else
-        fatal_error("not a pair");
+        fatal_error("not a pair", NULL);
 }
 
 obj_t *
@@ -456,7 +458,7 @@ pair_cdr(obj_t *self)
     if (pairp(self))
         return self->as_pair.cdr;
     else
-        fatal_error("not a pair");
+        fatal_error("not a pair", NULL);
 }
 
 void
@@ -465,7 +467,7 @@ pair_set_car(obj_t *self, obj_t *car)
     if (pairp(self))
         self->as_pair.car = car;
     else
-        fatal_error("not a pair");
+        fatal_error("not a pair", NULL);
 }
 
 void
@@ -474,7 +476,7 @@ pair_set_cdr(obj_t *self, obj_t *cdr)
     if (pairp(self))
         self->as_pair.cdr = cdr;
     else
-        fatal_error("not a pair");
+        fatal_error("not a pair", NULL);
 }
 
 // Symbol
@@ -489,7 +491,7 @@ symbol_wrap(obj_t **frame, const char *sval)
         gc_collect(frame);
         self = gc_malloc(sizeof(symbol_obj_t) + slen, TP_SYMBOL);
         if (!self)
-            fatal_error("out of memory");
+            fatal_error("out of memory", NULL);
 #ifndef ALWAYS_COLLECT
     }
 #endif
@@ -504,7 +506,7 @@ symbol_unwrap(obj_t *self)
     if (symbolp(self))
         return self->as_symbol.val;
     else
-        fatal_error("not a symbol");
+        fatal_error("not a symbol", NULL);
 }
 
 static long
@@ -578,7 +580,7 @@ string_wrap(obj_t **frame, const char *sval, size_t len)
         gc_collect(frame);
         self = gc_malloc(sizeof(string_obj_t) + len, TP_STRING);
         if (!self)
-            fatal_error("out of memory");
+            fatal_error("out of memory", frame);
 #ifndef ALWAYS_COLLECT
     }
 #endif
@@ -626,7 +628,7 @@ proc_wrap(obj_t **frame, sobj_funcptr_t func)
         gc_collect(frame);
         self = gc_malloc(sizeof(proc_obj_t), TP_PROC);
         if (!self)
-            fatal_error("out of memory");
+            fatal_error("out of memory", frame);
 #ifndef ALWAYS_COLLECT
     }
 #endif
@@ -640,7 +642,7 @@ proc_unwrap(obj_t *self)
     if (procedurep(self))
         return self->as_proc.func;
     else
-        fatal_error("not a procedure");
+        fatal_error("not a procedure", NULL);
 }
 
 obj_t *
@@ -654,7 +656,7 @@ closure_wrap(obj_t **frame, obj_t *env, obj_t *formals, obj_t *body)
         gc_collect(frame);
         self = gc_malloc(sizeof(closure_obj_t), TP_CLOSURE);
         if (!self)
-            fatal_error("out of memory");
+            fatal_error("out of memory", frame);
 #ifndef ALWAYS_COLLECT
     }
 #endif
@@ -670,7 +672,7 @@ closure_env(obj_t *self)
     if (closurep(self))
         return self->as_closure.env;
     else
-        fatal_error("not a closure");
+        fatal_error("not a closure", NULL);
 }
 
 obj_t *
@@ -679,7 +681,7 @@ closure_formals(obj_t *self)
     if (closurep(self))
         return self->as_closure.formals;
     else
-        fatal_error("not a closure");
+        fatal_error("not a closure", NULL);
 }
 
 obj_t *
@@ -688,7 +690,7 @@ closure_body(obj_t *self)
     if (closurep(self))
         return self->as_closure.body;
     else
-        fatal_error("not a closure");
+        fatal_error("not a closure", NULL);
 }
 
 obj_t *
@@ -706,7 +708,7 @@ vector_wrap(obj_t **frame, size_t nb_alloc, obj_t *fill)
         self = gc_malloc(sizeof(vector_obj_t) +
                          sizeof(obj_t *) * nb_alloc, TP_VECTOR);
         if (!self)
-            fatal_error("out of memory");
+            fatal_error("out of memory", frame);
 #ifndef ALWAYS_COLLECT
     }
 #endif
@@ -729,7 +731,7 @@ vector_from_list(obj_t **frame, obj_t *lis)
         iter = pair_cdr(iter);
     }
     if (!nullp(iter)) {
-        fatal_error("list->vector -- not a well-formed list");
+        fatal_error("list->vector -- not a well-formed list", frame);
     }
 
     // Second pass -- make a list and do copy
@@ -783,7 +785,7 @@ environ_wrap(obj_t **frame, obj_t *outer)
         gc_collect(frame);
         self = gc_malloc(sizeof(environ_obj_t), TP_ENVIRON);
         if (!self)
-            fatal_error("out of memory");
+            fatal_error("out of memory", frame);
 #ifndef ALWAYS_COLLECT
     }
 #endif
@@ -804,7 +806,7 @@ environ_set(obj_t *self, obj_t *key, obj_t *value)
         pair_set_cdr(binding, value);
     }
     else {
-        fatal_error("set! -- No such binding");
+        fatal_error("set! -- No such binding", NULL);
     }
     return binding;
 }
@@ -866,7 +868,7 @@ dict_wrap(obj_t **frame)
         gc_collect(frame);
         self = gc_malloc(sizeof(dict_obj_t), TP_DICT);
         if (!self)
-            fatal_error("out of memory");
+            fatal_error("out of memory", frame);
 #ifndef ALWAYS_COLLECT
     }
 #endif
@@ -902,7 +904,7 @@ dict_rehash(obj_t **frame, obj_t *self, size_t target_size)
         gc_collect(frame);
         ndict = gc_malloc(sizeof(dict_obj_t), TP_DICT);
         if (!ndict)
-            fatal_error("out of memory");
+            fatal_error("out of memory", frame);
 #ifndef ALWAYS_COLLECT
     }
 #endif

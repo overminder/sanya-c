@@ -138,7 +138,7 @@ bool_t eofobjp(obj_t *self);
 
 // Simple debug func
 // @see NOT_REACHED
-void fatal_error(const char *msg) __attribute__((noreturn));
+void fatal_error(const char *msg, obj_t **frame) __attribute__((noreturn));
 
 // Consts
 obj_t *nil_wrap();

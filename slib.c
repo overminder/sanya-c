@@ -192,7 +192,7 @@ slib_primitive_load(obj_t **frame, const char *file_name)
     fp = fopen(file_name, "r");
     if (!fp) {
         perror(file_name);
-        fatal_error("(load)");
+        fatal_error("(load)", frame);
     }
     prog = sparse_do_file(fp);
     fclose(fp);
@@ -234,7 +234,7 @@ lib_minus(obj_t **frame)
     bool_t is_int = 1;
 
     if (argc == 0) {
-        fatal_error("illegal (-)");
+        fatal_error("illegal (-)", frame);
     }
 
     arg = *frame_ref(frame, argc - 1);
@@ -271,7 +271,7 @@ lib_lessthan(obj_t **frame)
                             fixnum_unwrap(*frame_ref(frame, 0)));
     }
     else {
-        fatal_error("< require 2 arguments");
+        fatal_error("< require 2 arguments", frame);
     }
 }
 
@@ -282,7 +282,7 @@ lib_cons(obj_t **frame)
     if (argc == 2)
         return pair_wrap(frame, *frame_ref(frame, 1), *frame_ref(frame, 0));
     else
-        fatal_error("cons require 2 arguments");
+        fatal_error("cons require 2 arguments", frame);
 }
 
 static obj_t *
@@ -292,7 +292,7 @@ lib_car(obj_t **frame)
     if (argc == 1)
         return pair_car(*frame_ref(frame, 0));
     else
-        fatal_error("car require 1 argument");
+        fatal_error("car require 1 argument", frame);
 }
 
 static obj_t *
@@ -302,7 +302,7 @@ lib_cdr(obj_t **frame)
     if (argc == 1)
         return pair_cdr(*frame_ref(frame, 0));
     else
-        fatal_error("cdr require 1 argument");
+        fatal_error("cdr require 1 argument", frame);
 }
 
 static obj_t *
@@ -317,7 +317,7 @@ lib_set_car(obj_t **frame)
         return unspec_wrap();
     }
     else {
-        fatal_error("set-car! require 2 arguments");
+        fatal_error("set-car! require 2 arguments", frame);
     }
 }
 
@@ -333,7 +333,7 @@ lib_set_cdr(obj_t **frame)
         return unspec_wrap();
     }
     else {
-        fatal_error("set-cdr! require 2 arguments");
+        fatal_error("set-cdr! require 2 arguments", frame);
     }
 }
 
@@ -346,7 +346,7 @@ lib_list2vector(obj_t **frame)
         return vector_from_list(frame, *frame_ref(frame, 0));
     }
     else {
-        fatal_error("list->vector require 1 argument");
+        fatal_error("list->vector require 1 argument", frame);
     }
 }
 
@@ -365,7 +365,7 @@ lib_make_vector(obj_t **frame)
                            *frame_ref(frame, 0));
     }
     else {
-        fatal_error("make-vector require 1 or 2 arguments");
+        fatal_error("make-vector require 1 or 2 arguments", frame);
     }
 }
 
@@ -377,7 +377,7 @@ lib_vector_length(obj_t **frame)
         return fixnum_wrap(frame, vector_length(*frame_ref(frame, 0)));
     }
     else {
-        fatal_error("vector-length require 1 argument");
+        fatal_error("vector-length require 1 argument", frame);
     }
 }
 
@@ -393,7 +393,7 @@ lib_vector_ref(obj_t **frame)
         return *vector_ref(vec, idx);
     }
     else {
-        fatal_error("vector-ref require 2 arguments");
+        fatal_error("vector-ref require 2 arguments", frame);
     }
 }
 
@@ -411,7 +411,7 @@ lib_vector_set(obj_t **frame)
         return unspec_wrap();
     }
     else {
-        fatal_error("vector-set! require 3 arguments");
+        fatal_error("vector-set! require 3 arguments", frame);
     }
 }
 
@@ -425,7 +425,7 @@ lib_vector2list(obj_t **frame)
         return vector_to_list(frame, vec);
     }
     else {
-        fatal_error("vector->list require 1 argument");
+        fatal_error("vector->list require 1 argument", frame);
     }
 }
 
@@ -437,7 +437,7 @@ lib_make_dict(obj_t **frame)
         return dict_wrap(frame);
     }
     else {
-        fatal_error("make-hash require 0 argument");
+        fatal_error("make-hash require 0 argument", frame);
     }
 }
 
@@ -449,7 +449,7 @@ lib_dictp(obj_t **frame)
         return boolean_wrap(dictp(*frame_ref(frame, 0)));
     }
     else {
-        fatal_error("hash-table? require 1 argument");
+        fatal_error("hash-table? require 1 argument", frame);
     }
 }
 
@@ -463,14 +463,14 @@ lib_dict_ref(obj_t **frame)
         key = *frame_ref(frame, 0);
         got = dict_lookup(frame, dic, key, DL_DEFAULT);
         if (!got) {
-            fatal_error("hash-ref: no such key");
+            fatal_error("hash-ref: no such key", frame);
         }
         else {
             return pair_cdr(got);
         }
     }
     else {
-        fatal_error("hash-ref require 2 arguments");
+        fatal_error("hash-ref require 2 arguments", frame);
     }
 }
 
@@ -491,7 +491,7 @@ lib_dict_ref_default(obj_t **frame)
         }
     }
     else {
-        fatal_error("hash-ref/default require 3 arguments");
+        fatal_error("hash-ref/default require 3 arguments", frame);
     }
 }
 
@@ -509,7 +509,7 @@ lib_dict_set(obj_t **frame)
         return unspec_wrap();
     }
     else {
-        fatal_error("hash-set! require 3 arguments");
+        fatal_error("hash-set! require 3 arguments", frame);
     }
 }
 
@@ -525,7 +525,7 @@ lib_dict_delete(obj_t **frame)
         return unspec_wrap();
     }
     else {
-        fatal_error("hash-delete! require 2 arguments");
+        fatal_error("hash-delete! require 2 arguments", frame);
     }
 }
 
@@ -541,7 +541,7 @@ lib_dict_exists(obj_t **frame)
         return boolean_wrap(got != NULL);
     }
     else {
-        fatal_error("hash-exists? require 2 arguments");
+        fatal_error("hash-exists? require 2 arguments", frame);
     }
 }
 
@@ -557,7 +557,7 @@ lib_symbol2string(obj_t **frame)
         return string_wrap(frame, str, strlen(str));
     }
     else {
-        fatal_error("symbol->string require 1 argument");
+        fatal_error("symbol->string require 1 argument", frame);
     }
 }
 
@@ -576,7 +576,7 @@ lib_hash(obj_t **frame)
         return fixnum_wrap(frame, hval % moder_val);
     }
     else {
-        fatal_error("hash require 2 arguments");
+        fatal_error("hash require 2 arguments", frame);
     }
 }
 
@@ -590,7 +590,7 @@ lib_string2symbol(obj_t **frame)
         return symbol_intern(frame, string_unwrap(str));
     }
     else {
-        fatal_error("string->symbol require 1 argument");
+        fatal_error("string->symbol require 1 argument", frame);
     }
 }
 
@@ -606,7 +606,7 @@ lib_gensym(obj_t **frame)
         return symbol_intern(frame, buf);
     }
     else {
-        fatal_error("gensym require 0 argument");
+        fatal_error("gensym require 0 argument", frame);
     }
 }
 
@@ -618,7 +618,7 @@ lib_nullp(obj_t **frame)
         return boolean_wrap(nullp(*frame_ref(frame, 0)));
     }
     else {
-        fatal_error("null? require 1 argument");
+        fatal_error("null? require 1 argument", frame);
     }
 }
 
@@ -630,7 +630,7 @@ lib_pairp(obj_t **frame)
         return boolean_wrap(pairp(*frame_ref(frame, 0)));
     }
     else {
-        fatal_error("pair? require 1 argument");
+        fatal_error("pair? require 1 argument", frame);
     }
 }
 
@@ -642,7 +642,7 @@ lib_symbolp(obj_t **frame)
         return boolean_wrap(symbolp(*frame_ref(frame, 0)));
     }
     else {
-        fatal_error("symbol? require 1 argument");
+        fatal_error("symbol? require 1 argument", frame);
     }
 }
 
@@ -654,7 +654,7 @@ lib_integerp(obj_t **frame)
         return boolean_wrap(fixnump(*frame_ref(frame, 0)));
     }
     else {
-        fatal_error("integer? require 1 argument");
+        fatal_error("integer? require 1 argument", frame);
     }
 }
 
@@ -666,7 +666,7 @@ lib_vectorp(obj_t **frame)
         return boolean_wrap(vectorp(*frame_ref(frame, 0)));
     }
     else {
-        fatal_error("vector? require 1 argument");
+        fatal_error("vector? require 1 argument", frame);
     }
 }
 
@@ -678,7 +678,7 @@ lib_booleanp(obj_t **frame)
         return boolean_wrap(booleanp(*frame_ref(frame, 0)));
     }
     else {
-        fatal_error("boolean? require 1 argument");
+        fatal_error("boolean? require 1 argument", frame);
     }
 }
 
@@ -690,7 +690,7 @@ lib_unspecp(obj_t **frame)
         return boolean_wrap(unspecp(*frame_ref(frame, 0)));
     }
     else {
-        fatal_error("unspecified? require 1 argument");
+        fatal_error("unspecified? require 1 argument", frame);
     }
 }
 
@@ -702,7 +702,7 @@ lib_eofobjp(obj_t **frame)
         return boolean_wrap(eofobjp(*frame_ref(frame, 0)));
     }
     else {
-        fatal_error("eof? require 1 argument");
+        fatal_error("eof? require 1 argument", frame);
     }
 }
 
@@ -715,7 +715,7 @@ lib_dogc(obj_t **frame)
         return unspec_wrap();
     }
     else {
-        fatal_error("gc require no arguments");
+        fatal_error("gc require no arguments", frame);
     }
 }
 
@@ -778,7 +778,7 @@ lib_eqp(obj_t **frame)
         return boolean_wrap(is_eq);
     }
     else {
-        fatal_error("eq? require 2 arguments");
+        fatal_error("eq? require 2 arguments", frame);
     }
 }
 
@@ -792,20 +792,20 @@ lib_rtinfo(obj_t **frame)
         return unspec_wrap();
     }
     else {
-        fatal_error("runtime-info require no arguments");
+        fatal_error("runtime-info require no arguments", frame);
     }
 }
 
 static obj_t *
 lib_eval(obj_t **frame)
 {
-    fatal_error("eval is never called directly");
+    fatal_error("eval is never called directly", frame);
 }
 
 static obj_t *
 lib_apply(obj_t **frame)
 {
-    fatal_error("apply is never called directly");
+    fatal_error("apply is never called directly", frame);
 }
 
 static obj_t *
@@ -815,13 +815,13 @@ lib_null_environ(obj_t **frame)
     obj_t *prelude_env;
     if (argc == 1) {
         if (fixnum_unwrap(*frame_ref(frame, 0)) != 5) {
-            fatal_error("only r5rs environ is supported");
+            fatal_error("only r5rs environ is supported", frame);
         }
         prelude_env = frame_env(gc_get_stack_base());
         return environ_wrap(frame, prelude_env);
     }
     else {
-        fatal_error("null-environment require 1 argument");
+        fatal_error("null-environment require 1 argument", frame);
     }
 }
 
@@ -832,13 +832,13 @@ lib_report_environ(obj_t **frame)
     obj_t *prelude_env;
     if (argc == 1) {
         if (fixnum_unwrap(*frame_ref(frame, 0)) != 5) {
-            fatal_error("only r5rs environ is supported");
+            fatal_error("only r5rs environ is supported", frame);
         }
         prelude_env = frame_env(gc_get_stack_base());
         return prelude_env;
     }
     else {
-        fatal_error("scheme-report-environment require 1 argument");
+        fatal_error("scheme-report-environment require 1 argument", frame);
     }
 }
 
@@ -858,14 +858,14 @@ lib_load(obj_t **frame)
         // Check if there is null chars
         for (i = 0, len = string_length(file_name); i < len; ++i) {
             if (str[i] == '\0') {
-                fatal_error("file name contains NUL char");
+                fatal_error("file name contains NUL char", frame);
             }
         }
         slib_primitive_load(frame, str);
         return unspec_wrap();
     }
     else {
-        fatal_error("load require 1 argument");
+        fatal_error("load require 1 argument", frame);
     }
 }
 
@@ -891,7 +891,7 @@ lib_rl_setprompt(obj_t **frame)
         return unspec_wrap();
     }
     else {
-        fatal_error("readline-set-prompt require 1 argument");
+        fatal_error("readline-set-prompt require 1 argument", frame);
     }
 }
 
@@ -914,12 +914,12 @@ lib_read(obj_t **frame)
         }
         expr = sparse_do_string(line);
         if (!expr) {
-            fatal_error("malformed expression");
+            fatal_error("malformed expression", frame);
         }
         return pair_car(expr);
     }
     else {
-        fatal_error("read require 0 argument");
+        fatal_error("read require 0 argument", frame);
     }
 }
 
@@ -932,7 +932,7 @@ lib_display(obj_t **frame)
         return unspec_wrap();
     }
     else {
-        fatal_error("display require 1 argument");
+        fatal_error("display require 1 argument", frame);
     }
 }
 
@@ -945,7 +945,7 @@ lib_newline(obj_t **frame)
         return unspec_wrap();
     }
     else {
-        fatal_error("newline require no arguments");
+        fatal_error("newline require no arguments", frame);
     }
 }
 

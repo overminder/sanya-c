@@ -458,6 +458,9 @@ pair_wrap(obj_t **frame, obj_t *car, obj_t *cdr)
 obj_t *
 pair_copy_list(obj_t **frame, obj_t *self)
 {
+    if (nullp(self))
+        return self;
+
     SGC_ROOT1(frame, self);
     obj_t *cpy = pair_wrap(frame, pair_car(self), nil_wrap());
     SGC_ROOT1(frame, cpy);

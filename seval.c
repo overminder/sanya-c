@@ -155,6 +155,8 @@ tailcall:
                     obj_t **ex_frame = frame_extend(frame, 1,
                             FR_SAVE_PREV | FR_CONTINUE_ENV);
                     *frame_ref(ex_frame, 0) = cdr;
+
+                    // Call the special form.
                     retval = specform_unwrap(syntax)(ex_frame, &tailp);
                     if (slang_tailp(tailp)) {
                         *frame_ref(frame, 0) = retval;

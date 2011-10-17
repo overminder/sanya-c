@@ -9,13 +9,14 @@ static bool_t gc_verbose = 0;
 static gc_visitor_t visitor_types[256];
 static gc_finalizer_t finalizer_types[256];
 
-// 8K pointers, 64KByte of stack.
+// 8K pointers, 64KBytes of stack.
 static const size_t STACK_SIZE = 1024 * 8;
 
 // @see seval:new_frame() to see the frame layout.
 static obj_t **stack = NULL;
 static obj_t **sp;
 
+// 2MBytes of heap.
 #define MIN_HEAP_SIZE (1024 * 1024 * 2)
 static obj_t *gc_head = NULL;
 static size_t next_collect = MIN_HEAP_SIZE;

@@ -18,6 +18,7 @@ static obj_t *lang_define(obj_t **frame, obj_t **tailp);
 static obj_t *lang_set(obj_t **frame, obj_t **tailp);
 static obj_t *lang_begin(obj_t **frame, obj_t **tailp);
 static obj_t *lang_quote(obj_t **frame, obj_t **tailp);
+static obj_t *lang_quasiquote(obj_t **frame, obj_t **tailp);  // Not nested
 static obj_t *lang_lambda_syntax(obj_t **frame, obj_t **tailp);
 
 static langdef_t specforms[] = {
@@ -27,14 +28,24 @@ static langdef_t specforms[] = {
     {"set!", lang_set},
     {"begin", lang_begin},
     {"quote", lang_quote},
+    {"quasiquote", lang_quasiquote},
     {"lambda-syntax", lang_lambda_syntax},
 
     {NULL, NULL}
 };
 
+static obj_t *symbol_unquote = NULL;
+static obj_t *symbol_unquote_splicing = NULL;
+
 void
 slang_open(obj_t *env)
 {
+    static bool_t inited = 0;
+    if (inited)
+        return;
+    else
+        inited = 1;
+
     obj_t *binding;
     langdef_t *iter;
     gc_set_enabled(0);
@@ -42,6 +53,8 @@ slang_open(obj_t *env)
         environ_bind(NULL, env, symbol_intern(NULL, iter->name),
                      specform_wrap(NULL, iter->call));
     }
+    symbol_unquote = symbol_intern(NULL, "unquote");
+    symbol_unquote_splicing = symbol_intern(NULL, "unquote-splicing");
     gc_set_enabled(1);
 }
 
@@ -194,6 +207,103 @@ lang_quote(obj_t **frame, obj_t **tailp)
         fatal_error("quote -- wrong number of argument", frame);
     }
     return pair_car(expr);
+}
+
+enum quasiquote_return_flag {
+    QQ_DEFAULT = 0,
+    QQ_UNQUOTE = 1,
+    QQ_SPLICING = 2
+};
+
+static obj_t *
+expand_quasiquote(obj_t **frame, obj_t *content,
+                  enum quasiquote_return_flag *flag)
+{
+    if (!pairp(content)) {
+        return content;
+    }
+
+    // Manually compare each item with unquote/unquote-splicing
+    obj_t *uq = symbol_unquote;
+    obj_t *spl = symbol_unquote_splicing;
+    if (pair_car(content) == uq) {
+        obj_t *uq_body = pair_cadr(content);
+        frame = frame_extend(frame, 1, FR_SAVE_PREV | FR_CONTINUE_ENV);
+        *frame_ref(frame, 0) = uq_body;
+        if (flag)
+            *flag = QQ_UNQUOTE;
+        return eval_frame(frame);
+    }
+    else if (pair_car(content) == spl) {
+        obj_t *spl_body = pair_cadr(content);
+        obj_t *retval;
+        frame = frame_extend(frame, 1, FR_SAVE_PREV | FR_CONTINUE_ENV);
+        *frame_ref(frame, 0) = spl_body;
+        retval = eval_frame(frame);
+        if (flag)
+            *flag = QQ_SPLICING;
+        return retval;
+    }
+    else {
+        // Copy the pair content.
+        content = pair_copy_list(frame, content);
+        // Append a dummy header for unquote-splicing to use.
+        content = pair_wrap(frame, nil_wrap(), content);
+
+        // Mark the content.
+        frame = frame_extend(frame, 1, FR_SAVE_PREV | FR_CONTINUE_ENV);
+        *frame_ref(frame, 0) = content;
+
+        // For linking unquote-splicing, we look at the next item of
+        // the iterator. That's why we need a dummy header here.
+        obj_t *iter, *next, *got;
+        enum quasiquote_return_flag ret_flag;
+
+        for (iter = content; pairp(iter); iter = pair_cdr(iter)) {
+            // `next` will always be null or pair, since `content` is a list.
+            next = pair_cdr(iter);
+            if (nullp(next))  // we are done.
+                break;
+
+            got = expand_quasiquote(frame, pair_car(next), &ret_flag);
+            if (ret_flag & QQ_SPLICING) {
+                got = pair_copy_list(frame, got);
+
+                if (nullp(got)) {
+                    pair_set_cdr(iter, pair_cdr(next));
+                }
+                else {
+                    pair_set_cdr(iter, got);  // iter -> got
+                    while (pairp(pair_cdr(got))) {
+                        got = pair_cdr(got);
+                    }
+                    pair_set_cdr(got, pair_cdr(next));  // got -> (next->next)
+                    iter = got;  // make sure the next iteration is correct
+                }
+            }
+            else {
+                pair_set_car(next, got);
+            }
+        }
+        if (flag)
+            *flag = QQ_DEFAULT;
+        return pair_cdr(content);
+    }
+}
+
+static obj_t *
+lang_quasiquote(obj_t **frame, obj_t **tailp)
+{
+    obj_t *expr = *frame_ref(frame, 0);
+    obj_t *content;
+    *tailp = NULL;
+    if (nullp(expr) || !nullp(pair_cdr(expr))) {
+        fatal_error("quasiquote -- wrong number of argument", frame);
+    }
+
+    // Expand...
+    content = pair_car(expr);
+    return expand_quasiquote(frame, content, NULL);
 }
 
 static obj_t *

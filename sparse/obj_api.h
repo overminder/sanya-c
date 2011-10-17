@@ -95,7 +95,8 @@ make_unquoted(obj_t *item)
 static obj_t *
 make_splicing(obj_t *item)
 {
-    return make_pair(make_symbol("unquote-splicing"), make_pair(item, make_nil()));
+    return make_pair(make_symbol("unquote-splicing"),
+                     make_pair(item, make_nil()));
 }
 
 static obj_t *

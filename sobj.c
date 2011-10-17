@@ -203,6 +203,14 @@ print_repr(obj_t *self, FILE *stream)
         fprintf(stream, "#EOF");
         break;
 
+    case TP_SPECFORM:
+        fprintf(stream, "#<special-form at %p>", specform_unwrap(self));
+        break;
+
+    case TP_MACRO:
+        fprintf(stream, "#<macro at %p>", self->as_macro.rules);
+        break;
+
     default:
         NOT_REACHED();
     }
@@ -447,6 +455,30 @@ pair_wrap(obj_t **frame, obj_t *car, obj_t *cdr)
     pair_set_car(self, car);
     pair_set_cdr(self, cdr);
     return self;
+}
+
+obj_t *
+pair_copy_list(obj_t **frame, obj_t *self)
+{
+    SGC_ROOT1(frame, self);
+    obj_t *cpy = pair_wrap(frame, pair_car(self), nil_wrap());
+    SGC_ROOT1(frame, cpy);
+
+    // Loop
+    obj_t *iter_src = pair_cdr(self);
+    obj_t *iter_dest = cpy;
+
+    while (pairp(iter_src)) {
+        pair_set_cdr(iter_dest, pair_wrap(frame,
+                                          pair_car(iter_src),
+                                          nil_wrap()));
+        iter_dest = pair_cdr(iter_dest);
+        iter_src = pair_cdr(iter_src);
+    }
+    if (!nullp(iter_src)) {
+        fatal_error("pair_copy_list: not a well-formed list", frame);
+    }
+    return cpy;
 }
 
 obj_t *
@@ -1070,20 +1102,27 @@ obj_t *
 macro_expand(obj_t **frame, obj_t *self, obj_t *args)
 {
     {
-        // Quote the arg, note the inefficiency here...
-        obj_t **ex_frame = frame;
-        args = pair_car(args);
-        SGC_ROOT2(ex_frame, self, args);
-        args = pair_wrap(ex_frame, args, nil_wrap());
-        SGC_ROOT1(ex_frame, args);
-        args = pair_wrap(ex_frame, symbol_intern(ex_frame, "quote"),
-                         args);
-        SGC_ROOT1(ex_frame, args);
-        args = pair_wrap(ex_frame, args, nil_wrap());
+        // Turn the expression into an apply form.
+        // Note the inefficiency here...
+        obj_t **gc_frame = frame;
+        SGC_ROOT2(gc_frame, args, self);
+        // (args ...) -> ((args ...))
+        args = pair_wrap(gc_frame, args, nil_wrap());
+
+        // (quote (args ...))
+        args = pair_wrap(gc_frame, symbol_intern(gc_frame, "quote"), args);
+
+        // ((quote (args ...)))
+        args = pair_wrap(gc_frame, args, nil_wrap());
+
+        // (rules (quote (args ...)))
+        args = pair_wrap(gc_frame, self->as_macro.rules, args);
+
+        // (apply rules (quote (args ...)))
+        args = pair_wrap(gc_frame, symbol_intern(gc_frame, "apply"), args);
     }
-    obj_t *expr = pair_wrap(frame, self->as_macro.rules, args);
     frame = frame_extend(frame, 1, FR_SAVE_PREV | FR_CONTINUE_ENV);
-    *frame_ref(frame, 0) = expr;
+    *frame_ref(frame, 0) = args;
     return eval_frame(frame);
 }
 

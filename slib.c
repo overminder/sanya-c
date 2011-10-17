@@ -25,6 +25,7 @@ static obj_t *lib_cdr(obj_t **frame);
 static obj_t *lib_set_car(obj_t **frame);
 static obj_t *lib_set_cdr(obj_t **frame);
 static obj_t *lib_list2vector(obj_t **frame);
+static obj_t *lib_list_copy(obj_t **frame);
 
 static obj_t *lib_make_vector(obj_t **frame);
 static obj_t *lib_vectorp(obj_t **frame);
@@ -86,6 +87,7 @@ static procdef_t library[] = {
     {"set-car!", lib_set_car},
     {"set-cdr!", lib_set_cdr},
     {"list->vector", lib_list2vector},
+    {"list-copy", lib_list_copy},
 
     // Vector
     {"make-vector", lib_make_vector},
@@ -349,6 +351,22 @@ lib_list2vector(obj_t **frame)
     }
     else {
         fatal_error("list->vector require 1 argument", frame);
+    }
+}
+
+static obj_t *
+lib_list_copy(obj_t **frame)
+{
+    obj_t *lis;
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        lis = *frame_ref(frame, 0);
+        if (!pairp(lis))
+            fatal_error("list-copy require argument to be list", frame);
+        return pair_copy_list(frame, lis);
+    }
+    else {
+        fatal_error("list-copy require 1 argument", frame);
     }
 }
 

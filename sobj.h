@@ -165,6 +165,7 @@ double flonum_unwrap(obj_t *self);
 // Pair
 obj_t *pair_wrap(obj_t **frame, obj_t *car, obj_t *cdr);
 bool_t pairp(obj_t *self);
+obj_t *pair_copy_list(obj_t **frame, obj_t *self);
 obj_t *pair_car(obj_t *self);
 obj_t *pair_cdr(obj_t *self);
 void pair_set_car(obj_t *self, obj_t *car);

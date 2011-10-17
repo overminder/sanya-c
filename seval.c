@@ -130,6 +130,9 @@ eval_frame(obj_t **frame)
 {
     obj_t *self;
     obj_t *car, *cdr, *w, *x, *v;
+    // When in primitive-apply or macro expension, this will be false.
+    // Otherwise, it will be set to true on normal routine.
+    bool_t args_need_eval;
 
 tailcall:
     self = *frame_ref(frame, 0);
@@ -138,6 +141,8 @@ tailcall:
     case TP_PAIR:
         car = pair_car(self);
         cdr = pair_cdr(self);
+        args_need_eval = 1;
+
         if (symbolp(car)) {
             // Handling special form / macros
             obj_t *binding = environ_lookup(frame_env(frame),
@@ -179,7 +184,6 @@ tailcall:
             obj_t *orig_env = frame_env(frame);
             long argc;
             long i;
-            bool_t args_need_eval = 1;
             {
                 // Get the procedure/closure
                 obj_t **proc_frame = frame_extend(frame, 1,
@@ -293,13 +297,43 @@ apply_reentry:
 
                     // 2: push bindings into it -- pos args only for now.
                     // XXX: arg length check is not done.
-                    // XXX: supporting var-arg is ongoing
                     formals = closure_formals(proc);
                     for (i = argc - 1; i >= 0; --i) {
-                        environ_bind(frame, env,
-                                     pair_car(formals),
-                                     *frame_ref(frame, i));
-                        formals = pair_cdr(formals);
+                        if (symbolp(formals)) {
+                            // pack things into vararg, note it's reversed
+                            obj_t *vararg = nil_wrap();
+                            long rev_i;
+                            for (rev_i = 0; rev_i <= i; ++rev_i) {
+                                obj_t **gc_frame = frame;
+                                SGC_ROOT1(gc_frame, vararg);
+                                vararg = pair_wrap(gc_frame,
+                                                   *frame_ref(frame, rev_i),
+                                                   vararg);
+                            }
+                            environ_bind(frame, env, formals, vararg);
+                            formals = nil_wrap();  // for later to check
+                            break;
+                        }
+                        else if (pairp(formals)) {
+                            environ_bind(frame, env,
+                                         pair_car(formals),
+                                         *frame_ref(frame, i));
+                            formals = pair_cdr(formals);
+                        }
+                        else {
+                            fatal_error("too many args in closure application",
+                                        frame);
+                        }
+                    }
+                    if (symbolp(formals)) {
+                        // Vararg with no args -- make it a empty nil.
+                        environ_bind(frame, env, formals, nil_wrap());
+                    }
+                    else if (!nullp(formals)) {
+                        // Still a pair, which means that we dont have
+                        // enough arguments...
+                        fatal_error("not enough args in closure application",
+                                    frame);
                     }
                     // 3: make it a begin.
                     body = pair_wrap(frame, symbol_begin, closure_body(proc));

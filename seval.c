@@ -262,6 +262,10 @@ apply_reentry:
                         }
                         obj_t *expr = *frame_ref(frame, 1);
                         obj_t *environ = *frame_ref(frame, 0);
+                        if (!environp(environ)) {
+                            fatal_error("first argument of eval should "
+                                        "be an environment", frame);
+                        }
                         frame = frame_extend(orig_frame, 1,
                                 FR_CLEAR_SLOTS | FR_SAVE_PREV);
                         // Must create a new frame with the environ
@@ -286,7 +290,10 @@ apply_reentry:
                         args_need_eval = 0;  // args are already evaluated
                         goto apply_reentry;
                     }
-                    return apply_procedure(frame);
+                    else {
+                        // Ordinary procedure application
+                        return apply_procedure(frame);
+                    }
                 }
                 else {
                     // Is scm-closure: *HARD PART COMES*

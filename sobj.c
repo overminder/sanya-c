@@ -837,7 +837,7 @@ environ_wrap(obj_t **frame, obj_t *outer)
 obj_t *
 environ_set(obj_t *self, obj_t *key, obj_t *value)
 {
-    obj_t *binding = dict_lookup(NULL, self, key, DL_DEFAULT);
+    obj_t *binding = environ_lookup(self, key, EL_LOOK_OUTER);
     if (binding) {
         pair_set_cdr(binding, value);
     }

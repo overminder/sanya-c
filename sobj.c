@@ -1033,6 +1033,10 @@ dict_lookup(obj_t **frame, obj_t *self, obj_t *key, enum dict_lookup_flag fl)
     obj_t *entry_list, *entry, *prev_entry_list;
     size_t hashval, index;
 
+    if (!dictp(self)) {
+        fatal_error("dict_lookup: not a dict", frame);
+    }
+
     hashval = symbol_hash(key);
     index = hashval & self->as_dict.hash_mask;
     entry_ref = vector_ref(self->as_dict.vec, index);

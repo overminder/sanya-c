@@ -1,6 +1,8 @@
 
 (define testing #f)
 
+(gc-set-verbosity #f)
+
 ;; mostly macros
 (define let
   (lambda-syntax (bindings . body)
@@ -37,6 +39,14 @@
       (cases->if cases))))
 
 (define letrec
+  (lambda-syntax (bindings . body)
+    (let ((binding-defs (bindings->defines bindings)))
+      `((lambda ()
+          ,@binding-defs
+          ,@body)))))
+
+;; ... the same
+(define let*
   (lambda-syntax (bindings . body)
     (let ((binding-defs (bindings->defines bindings)))
       `((lambda ()
@@ -95,6 +105,12 @@
       (lfold1 proc (proc curr (car lis)) (cdr lis))))
   (lfold1 proc init lis))
 
+(define (for-each proc lis)
+  (if (null? lis) #f
+    (begin
+      (proc (car lis))
+      (for-each proc (cdr lis)))))
+
 (define (map proc lis)
   (define (map1 proc args result)
     (if (null? args) result
@@ -102,10 +118,21 @@
             (map1 proc (cdr args) result))))
   (map1 proc lis '()))
 
-(define call/ec call-with-escaping-continuation)
+(define (zip lis1 lis2)
+  (cond
+    ((or (null? lis1)
+         (null? lis2))
+     '())
+    (else
+      (cons (list (car lis1) (car lis2))
+            (zip (cdr lis1) (cdr lis2))))))
 
-(define (list . x)
-  x)
+(define (list . x) x)
+
+(define (vector . x) (list->vector x))
+
+;; only have escaping cont.
+(define call/ec call-with-escaping-continuation)
 
 (define pretty-print
   (lambda-syntax (expr)
@@ -115,7 +142,7 @@
        (display result)
        (newline))))
 
-
+;; update lhs with keys/values from rhs and return lhs.
 (define hash-update!
   (letrec ((update-keys!
              (lambda (dst src keys)
@@ -127,6 +154,7 @@
     (lambda (dst src)
       (update-keys! dst src (hash-keys src)))))
 
+;; pretty-print the dict, just as python does.
 (define (hash-pprint dic)
   (letrec ((pprint1 (lambda (dic keys)
                       (if (null? keys) #f

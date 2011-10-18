@@ -99,4 +99,5 @@
     [($symbol value)                          symbol-expr]
     [_                                        anything]))
 
-(pretty-print (match-scheme-expr '(set! hehe 5)))
+(if testing
+  (pretty-print (match-scheme-expr '(set! hehe 5))))

@@ -56,6 +56,7 @@ static obj_t *lib_integerp(obj_t **frame);
 static obj_t *lib_booleanp(obj_t **frame);
 static obj_t *lib_unspecp(obj_t **frame);
 static obj_t *lib_eofobjp(obj_t **frame);
+static obj_t *lib_procedurep(obj_t **frame);
 
 static obj_t *lib_eqp(obj_t **frame);
 
@@ -124,6 +125,7 @@ static procdef_t library[] = {
     {"null?", lib_nullp},
     {"boolean?", lib_booleanp},
     {"eof?", lib_eofobjp},
+    {"procedure?", lib_procedurep},
     {"unspecified?", lib_unspecp},
 
     // Equality
@@ -213,6 +215,9 @@ slib_primitive_load(obj_t **frame, const char *file_name)
         fatal_error("(load)", frame);
     }
     prog = sparse_do_file(fp);
+    if (sparse_syntax_errorp() || !prog) {
+        fatal_error("load -- syntax error in file", frame);
+    }
     fclose(fp);
 
     execute_expr_list(frame, prog);
@@ -306,9 +311,15 @@ lib_cons(obj_t **frame)
 static obj_t *
 lib_car(obj_t **frame)
 {
+    obj_t *pair;
     LIB_PROC_HEADER();
-    if (argc == 1)
-        return pair_car(*frame_ref(frame, 0));
+    if (argc == 1) {
+        pair = *frame_ref(frame, 0);
+        if (!pairp(pair)) {
+            fatal_error("car require argument to be pair", frame);
+        }
+        return pair_car(pair);
+    }
     else
         fatal_error("car require 1 argument", frame);
 }
@@ -316,11 +327,18 @@ lib_car(obj_t **frame)
 static obj_t *
 lib_cdr(obj_t **frame)
 {
+    obj_t *pair;
     LIB_PROC_HEADER();
-    if (argc == 1)
-        return pair_cdr(*frame_ref(frame, 0));
-    else
+    if (argc == 1) {
+        pair = *frame_ref(frame, 0);
+        if (!pairp(pair)) {
+            fatal_error("cdr require argument to be pair", frame);
+        }
+        return pair_cdr(pair);
+    }
+    else {
         fatal_error("cdr require 1 argument", frame);
+    }
 }
 
 static obj_t *
@@ -751,6 +769,19 @@ lib_eofobjp(obj_t **frame)
     }
     else {
         fatal_error("eof? require 1 argument", frame);
+    }
+}
+
+static obj_t *
+lib_procedurep(obj_t **frame)
+{
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        obj_t *item = *frame_ref(frame, 0);
+        return boolean_wrap(procedurep(item) || closurep(item));
+    }
+    else {
+        fatal_error("procedure? require 1 argument", frame);
     }
 }
 

@@ -310,7 +310,7 @@ apply_reentry:
                     econt_putaux(proc, aux);
                     longjmp(*econt_getenv(proc), 1);
                 }
-                else {
+                else if (closurep(proc)) {
                     // Is scm-closure: *HARD PART COMES*
                     // Remember the frame layout:
                     //   [env, dumped-fp, argn, ..., arg0, callable]
@@ -370,6 +370,9 @@ apply_reentry:
                         frame_set_env(frame, env);
                         goto tailcall;
                     }
+                }
+                else {
+                    fatal_error("not a callable", frame);
                 }
             }
         }

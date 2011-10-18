@@ -1087,6 +1087,26 @@ found_entry:
 }
 
 obj_t *
+dict_get_keys(obj_t **frame, obj_t *self)
+{
+    SGC_ROOT1(frame, self);
+    obj_t *vec = self->as_dict.vec;
+    obj_t *retval = nil_wrap();
+    long i = 0;
+    long vec_len = vector_length(vec);
+
+    for (; i < vec_len; ++i) {
+        obj_t *hash_list = *vector_ref(vec, i);
+        obj_t *iter;
+        for (iter = hash_list; pairp(iter); iter = pair_cdr(iter)) {
+            obj_t *kvpair = pair_car(iter);
+            retval = pair_wrap(frame, pair_car(kvpair), retval);
+        }
+    }
+    return retval;
+}
+
+obj_t *
 specform_wrap(obj_t **frame, sobj_funcptr2_t call)
 {
 #ifdef ALWAYS_COLLECT

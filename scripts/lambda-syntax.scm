@@ -1,27 +1,7 @@
 
 (define testing #f)
 
-(define call/ec call-with-escaping-continuation)
-
-(define (caar p)
-  (car (car p)))
-
-(define (cadr p)
-  (car (cdr p)))
-
-(define (lfold proc init lis)
-  (define (lfold1 proc curr lis)
-    (if (null? lis) curr
-      (lfold1 proc (proc curr (car lis)) (cdr lis))))
-  (lfold1 proc init lis))
-
-(define (map proc lis)
-  (define (map1 proc args result)
-    (if (null? args) result
-      (cons (proc (car args))
-            (map1 proc (cdr args) result))))
-  (map1 proc lis '()))
-
+;; mostly macros
 (define let
   (lambda-syntax (bindings . body)
     (define (bindings->keys bindings)
@@ -85,10 +65,8 @@
     (if (null? body) #t
       (let ((head (car body))
             (tail (cdr body)))
-        (cond
-          ((null? tail) head)
-          (head `(and ,@tail))
-          (else head))))))
+        `(if ,head (and ,@tail)
+           #f)))))
 
 (define delay
   (lambda-syntax (expr)
@@ -104,6 +82,66 @@
 (define (force expr)
   (expr))
 
+;; library procedures
+(define (caar p)
+  (car (car p)))
+
+(define (cadr p)
+  (car (cdr p)))
+
+(define (lfold proc init lis)
+  (define (lfold1 proc curr lis)
+    (if (null? lis) curr
+      (lfold1 proc (proc curr (car lis)) (cdr lis))))
+  (lfold1 proc init lis))
+
+(define (map proc lis)
+  (define (map1 proc args result)
+    (if (null? args) result
+      (cons (proc (car args))
+            (map1 proc (cdr args) result))))
+  (map1 proc lis '()))
+
+(define call/ec call-with-escaping-continuation)
+
+(define (list . x)
+  x)
+
+(define pretty-print
+  (lambda-syntax (expr)
+    `(let ((result ,expr))
+       (display ',expr)
+       (display " => ")
+       (display result)
+       (newline))))
+
+
+(define hash-update!
+  (letrec ((update-keys!
+             (lambda (dst src keys)
+               (if (null? keys) dst
+                 (let ((key (car keys))
+                       (rest-keys (cdr keys)))
+                   (hash-set! dst key (hash-ref src key))
+                   (update-keys! dst src rest-keys))))))
+    (lambda (dst src)
+      (update-keys! dst src (hash-keys src)))))
+
+(define (hash-pprint dic)
+  (letrec ((pprint1 (lambda (dic keys)
+                      (if (null? keys) #f
+                        (let ((key (car keys))
+                              (rest-keys (cdr keys)))
+                          (display key)
+                          (display ": ")
+                          (display (hash-ref dic key))
+                          (display ", ")
+                          (pprint1 dic rest-keys))))))
+    (display "{")
+    (pprint1 dic (hash-keys dic))
+    (display "}\n")))
+
+;; syntax testings
 (if testing
   (begin
 
@@ -117,6 +155,9 @@
     (display "testing cond, (expecting true) => ")
     (display
       (cond
+        ((and #f #t) 1)
+        ((and #t #f) 2)
+        ((or #f #f) 3)
         (#f 'false)
         (else 'true)))
     (newline)
@@ -176,7 +217,5 @@
     (display (force test-delay))
     (newline))
 
-  (begin
-    (display "lambda-syntax.scm loaded")
-    (newline)))
+  ) ; done
 

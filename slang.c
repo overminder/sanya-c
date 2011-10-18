@@ -235,7 +235,16 @@ expand_quasiquote(obj_t **frame, obj_t *content,
     if (pair_car(content) == qq) {
         if (flag)
             flag = QQ_DEFAULT;
-        return content;  // nested QQ
+        return content;
+        // XXX: NESTED QQ...
+        /*
+        obj_t *body = pair_cadr(content);
+        frame = frame_extend(frame, 1, FR_SAVE_PREV | FR_CONTINUE_ENV);
+        *frame_ref(frame, 0) = content;
+        obj_t *res = expand_quasiquote(frame, body, NULL);  // nested QQ
+        obj_t *wrap = pair_wrap(frame, res, nil_wrap());
+        return pair_wrap(frame, qq, wrap);
+        */
     }
     else if (pair_car(content) == uq) {
         obj_t *uq_body = pair_cadr(content);

@@ -8,8 +8,8 @@ static obj_t *prog_expr = NULL;
 
 %}
 
-%token T_LPAREN T_RPAREN T_PERIOD T_QUOTE T_SHARPLPAREN
-%token T_QUASIQUOTE T_UNQUOTE T_SPLICING
+%token T_LPAREN T_RPAREN T_PERIOD T_SHARPLPAREN T_LBRACKET T_RBRACKET
+%token T_QUOTE T_QUASIQUOTE T_UNQUOTE T_SPLICING
 %token <obj_val> T_EXPR
 %type <obj_val> sexpr pair list prog vector
 
@@ -33,6 +33,7 @@ sexpr: T_EXPR { $$ = $1; }
 vector: T_SHARPLPAREN pair T_RPAREN { $$ = make_vector($2); }
 
 list: T_LPAREN pair T_RPAREN { $$ = $2 }
+    | T_LBRACKET pair T_RBRACKET { $$ = $2 }
 
 pair: sexpr T_PERIOD sexpr { $$ = make_pair($1, $3); }
     | sexpr pair { $$ = make_pair($1, $2); }

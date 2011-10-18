@@ -248,6 +248,8 @@ size_t dict_size(obj_t *self);
 // If not found, it will return NULL.
 obj_t *dict_lookup(obj_t **frame, obj_t *self,
                    obj_t *key, enum dict_lookup_flag);
+// Get a list of keys
+obj_t *dict_get_keys(obj_t **frame, obj_t *self);
 
 // Language construct and macro
 bool_t syntaxp(obj_t *self);

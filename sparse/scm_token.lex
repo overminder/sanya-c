@@ -13,6 +13,14 @@
     return T_RPAREN;
 }
 
+\[ {
+    return T_LBRACKET;
+}
+
+\] {
+    return T_RBRACKET;
+}
+
 \. {
     return T_PERIOD;
 }

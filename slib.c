@@ -41,6 +41,7 @@ static obj_t *lib_dict_ref_default(obj_t **frame);
 static obj_t *lib_dict_set(obj_t **frame);
 static obj_t *lib_dict_delete(obj_t **frame);
 static obj_t *lib_dict_exists(obj_t **frame);
+static obj_t *lib_dict_keys(obj_t **frame);
 
 static obj_t *lib_hash(obj_t **frame);
 static obj_t *lib_symbol2string(obj_t **frame);
@@ -109,6 +110,7 @@ static procdef_t library[] = {
     {"hash-set!", lib_dict_set},
     {"hash-delete!", lib_dict_delete},
     {"hash-exists?", lib_dict_exists},
+    {"hash-keys", lib_dict_keys},
 
     // Symbol/String
     {"hash", lib_hash},
@@ -573,6 +575,20 @@ lib_dict_exists(obj_t **frame)
     }
     else {
         fatal_error("hash-exists? require 2 arguments", frame);
+    }
+}
+
+static obj_t *
+lib_dict_keys(obj_t **frame)
+{
+    obj_t *dic;
+    LIB_PROC_HEADER();
+    if (argc == 1) {
+        dic = *frame_ref(frame, 0);
+        return dict_get_keys(frame, dic);
+    }
+    else {
+        fatal_error("hash-keys require 1 argument", frame);
     }
 }
 

@@ -5,6 +5,8 @@
 extern int yylex(void);
 extern void yyerror(const char *);
 static obj_t *prog_expr = NULL;
+void sparse_clean_syntax_error();
+static bool_t got_error = 0;
 
 %}
 
@@ -57,6 +59,7 @@ sparse_do_string(char *s)
     obj_t *retval;
     YY_BUFFER_STATE buf;
 
+    sparse_clean_syntax_error();
     buf = yy_scan_string(s);
     yy_switch_to_buffer(buf);
     gc_set_enabled(0);
@@ -75,6 +78,7 @@ sparse_do_file(FILE *fp)
     obj_t *retval;
     YY_BUFFER_STATE buf;
 
+    sparse_clean_syntax_error();
     buf = yy_create_buffer(fp, YY_BUF_SIZE);
     yy_switch_to_buffer(buf);
     gc_set_enabled(0);
@@ -85,5 +89,23 @@ sparse_do_file(FILE *fp)
     retval = prog_expr;
     prog_expr = NULL;
     return retval;
+}
+
+void
+sparse_raise_syntax_error(const char *why)
+{
+    got_error = 1;
+}
+
+bool_t
+sparse_syntax_errorp()
+{
+    return got_error;
+}
+
+void
+sparse_clean_syntax_error()
+{
+    got_error = 0;
 }
 

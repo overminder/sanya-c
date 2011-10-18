@@ -1089,6 +1089,9 @@ found_entry:
 obj_t *
 dict_get_keys(obj_t **frame, obj_t *self)
 {
+    if (!dictp(self))
+        fatal_error("not a dict", frame);
+
     SGC_ROOT1(frame, self);
     obj_t *vec = self->as_dict.vec;
     obj_t *retval = nil_wrap();

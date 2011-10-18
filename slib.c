@@ -8,6 +8,7 @@
 // From sparse/scm_*
 extern obj_t *sparse_do_string(const char *);
 extern obj_t *sparse_do_file(FILE *);
+extern bool_t sparse_syntax_errorp();
 
 typedef struct {
     const char *name;
@@ -995,7 +996,7 @@ lib_read(obj_t **frame)
                 break;
         }
         expr = sparse_do_string(line);
-        if (!expr) {
+        if (sparse_syntax_errorp() || !expr) {
             fatal_error("malformed expression", frame);
         }
         return pair_car(expr);

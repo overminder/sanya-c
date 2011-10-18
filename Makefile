@@ -1,14 +1,14 @@
 # automatically generated from .pymakegen_v2.conf
-# timestamp: 1318822633.955018
+# timestamp: 1318916582.668974
 # handler_namespaces: ['root', handler.flexbison, handler.gcc]
 
 flexbison_BISON=bison
 flexbison_FLEX=flex
 gcc_CC=gcc
-gcc_CFLAGS=-ggdb3 -O0 -Wall -Winline -Wwrite-strings  \
-	    -Wno-unused -c
+gcc_CFLAGS=-O3 -Wall -fomit-frame-pointer -fno-strict-aliasing  \
+	    -Winline -Wwrite-strings -Wno-unused -c
 gcc_INCLUDES=-I./
-gcc_LDFLAGS=-lreadline -ggdb3 -O0
+gcc_LDFLAGS=-lreadline -O3
 gcc_TARGET=omscm-c
 
 all : sparse/scm_token.flex.h sparse/scm_token.flex.c  \

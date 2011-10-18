@@ -13,11 +13,11 @@
     return T_RPAREN;
 }
 
-\[ {
+"[" {
     return T_LBRACKET;
 }
 
-\] {
+"]" {
     return T_RBRACKET;
 }
 
@@ -72,14 +72,14 @@
     return T_EXPR;
 }
 
-;[^\n]* ;
+;[^\n]* ;  // Ignore comments
 
 [\.\+\-\*\^\?a-zA-Z!<=>\_~/$%&:][\.\+\-\*\^\?a-zA-Z0-9!<=>\_~/$%&:]* {
     yylval.obj_val = make_symbol(yytext);
     return T_EXPR;
 }
 
-[ \n\t]+ ;
+[ \n\t]+ ;  // Ignore whitespaces
 
 %%
 
@@ -89,9 +89,12 @@ yywrap(void)
     return 1;
 }
 
+extern void sparse_raise_syntax_error(const char *why);
+
 void
 yyerror(const char *s)
 {
-    fprintf(stderr, "YYERROR -- %s", s);
+    // Well, got a parse error...
+    sparse_raise_syntax_error(s);
 }
 

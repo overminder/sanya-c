@@ -1,4 +1,4 @@
 Inspired by lisp500 for using shadow stack to maintain a gc root set and
 to pass varargs around the functions.
 
-The implementation is definately slower but allows fancy things to happen.
+The implementation is definitely slower but allows fancy things to happen.

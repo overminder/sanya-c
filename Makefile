@@ -1,15 +1,20 @@
 # automatically generated from .pymakegen_v2.conf
 # timestamp: 1318931093.679702
 # handler_namespaces: ['root', handler.flexbison, handler.gcc]
+# manually edited to add -D options
+
+omscm_ROOTDIR= $(shell pwd)
+gcc_DEFINES=-D omscm_ROOTDIR=$(omscm_ROOTDIR)
 
 flexbison_BISON=bison
 flexbison_FLEX=flex
 gcc_CC=gcc
 gcc_CFLAGS=-O3 -ggdb3 -Wall -Winline -Wwrite-strings  \
-	    -Wno-unused -c
+	    -Wno-unused -c $(gcc_DEFINES)
 gcc_INCLUDES=-I./
 gcc_LDFLAGS=-lreadline -ggdb3 -O3
 gcc_TARGET=omscm-c
+
 
 all : sparse/scm_token.flex.h sparse/scm_token.flex.c  \
 	    sparse/scm_syntax.bison.h sparse/scm_syntax.bison.c  \

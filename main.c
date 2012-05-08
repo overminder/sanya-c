@@ -9,9 +9,11 @@ int g_argc;
 char **g_argv;
 
 // let, letrec, let*, cond, and, or...
-static const char *syntax_lib = 
-        "/home/overmind/src/c/omschemes/"
-        "v4-moving-gc-wstack/scripts/lambda-syntax.scm";
+#define _TOSTR(x) #x
+#define TOSTR(x) _TOSTR(x)
+static const char *syntax_lib = TOSTR(omscm_ROOTDIR) "/scripts/lambda-syntax.scm";
+#undef TOSTR
+#undef _TOSTR
 
 static void
 repl()
